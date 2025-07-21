@@ -3,10 +3,10 @@
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
 
-// ✅ Use your testing bot token
+// 🔐 Bot Token
 const bot = new Telegraf('7886514278:AAEsK0lq5zh1Z8g7OQzWguoWxcRwVIw48A8');
 
-// 🧠 Roles (50 intelligent capabilities)
+// 🧠 Roles (50 intelligent minds)
 const roles = [
   'Mathematician', 'Econometician', 'Doctor', 'Brain Master', 'Physicist',
   'Chemist', 'Biologist', 'Engineer', 'Philosopher', 'Psychologist',
@@ -22,7 +22,7 @@ const roles = [
 
 let currentRole = 'Brain Master';
 
-// 🌐 AI Endpoints
+// 🌐 AI API Endpoints
 const aiAPIs = [
   'https://api.giftedtech.co.ke/api/ai/gpt4o',
   'https://api.giftedtech.co.ke/api/ai/geminiaipro',
@@ -31,52 +31,54 @@ const aiAPIs = [
   'https://api.giftedtech.co.ke/api/ai/ai'
 ];
 
-// 📩 Handle incoming messages
+// 💬 Chat Handler
 bot.on('text', async (ctx) => {
   const input = ctx.message.text;
   const user = ctx.from.first_name || ctx.from.username || 'User';
-  const timestamp = new Date().toLocaleString();
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  let response = '🤖 Could not generate a reply.';
+  let response = '🤖 Sorry, I couldn’t generate a reply.';
+
+  await ctx.sendChatAction("typing");
 
   for (let url of aiAPIs) {
-  try {
-    const { data } = await axios.get(url, {
-      params: { apikey: 'gifted', q: `${currentRole}: ${input}` },
-      timeout: 8000
-    });
+    try {
+      const { data } = await axios.get(url, {
+        params: { apikey: 'gifted', q: `${currentRole}: ${input}` },
+        timeout: 8000
+      });
 
-    if (data.result) {
-      let cleaned = data.result
-        .replace(/ChatGPT/gi, "Prof-Tech MVAI")
-        .replace(/Gifted\s*AI/gi, "Prof-Tech MVAI")
-        .replace(/OpenAI/gi, "Cool Shot Designs/Tech")
-        .replace(/I['’`]?m an AI language model/gi, "I'm Prof-Tech MVAI, your personal AI assistant")
-        .replace(/I am an AI developed by.*?[\.\n]/gi, "I'm Prof-Tech MVAI, built by Cool Shot Designs/Tech.\n")
-        .replace(/I was created by.*?[\.\n]/gi, "I was created by Cool Shot Designs/Tech.\n")
-        .replace(/I['’`]?m called Gifted AI/gi, "I'm Prof-Tech MVAI")
-        .replace(/GiftedTech/gi, "Cool Shot Designs/Tech")
-        .replace(/[“”]/g, '"'); // Normalize curly quotes
+      if (data.result) {
+        const cleaned = data.result
+          .replace(/ChatGPT/gi, "Prof-Tech MVAI")
+          .replace(/Gifted\s*AI/gi, "Prof-Tech MVAI")
+          .replace(/OpenAI/gi, "Cool Shot Designs/Tech")
+          .replace(/I['’`]?m an AI language model/gi, "I'm Prof-Tech MVAI, your AI companion")
+          .replace(/I am an AI developed by.*?[\.\n]/gi, "I'm Prof-Tech MVAI, built by Cool Shot Designs/Tech.\n")
+          .replace(/I was created by.*?[\.\n]/gi, "I was created by Cool Shot Designs/Tech.\n")
+          .replace(/I['’`]?m called Gifted AI/gi, "I'm Prof-Tech MVAI")
+          .replace(/GiftedTech/gi, "Cool Shot Designs/Tech")
+          .replace(/[“”]/g, '"');
 
-      response = `🧠 *${currentRole}*\n\n${cleaned}\n\n🕓 ${timestamp}`;
-      break;
+        response = `💡 *Here's what I found:*\n\n${cleaned}\n\n🕓 ${time}`;
+        break;
+      }
+    } catch (err) {
+      // You may log errors here if needed
     }
-  } catch (err) {
-    // You can log errors if needed: console.error(err);
   }
-}
 
   ctx.replyWithMarkdown(response);
 });
 
-// 🚀 Start Command
+// 🚀 /start Command
 bot.start((ctx) => {
   ctx.replyWithMarkdown(
-    `👋 *Welcome to Prof-Tech MVAI!*\n\n*Available Roles:* ${roles.length}\n_Current Role:_ *${currentRole}*\n\nType /role to change brain mode.\nAsk anything below 👇`
+    `👋 *Hello, I'm Prof-Tech MVAI!*\n\n🤖 I'm your AI-powered assistant developed by *Cool Shot Designs/Tech*.\n\n💡 Ask me anything about:\n🧮 Math | 💊 Health | 📊 Economics | 💻 Tech | 🤯 Brain Logic\n\n🎓 Use /role to switch brain power.\nReady when you are! 🚀`
   );
 });
 
-// 🧠 /role Command - List Roles
+// 🧠 /role Command
 bot.command('role', (ctx) => {
   let msg = '*🧠 Choose a Brain Role:*\n\n';
   roles.forEach((role, i) => {
@@ -85,7 +87,7 @@ bot.command('role', (ctx) => {
   ctx.replyWithMarkdown(msg);
 });
 
-// 🔁 Switch Role via Commands: /1 to /50
+// 🎯 Role Switch Commands
 roles.forEach((role, index) => {
   bot.command((index + 1).toString(), (ctx) => {
     currentRole = role;
@@ -93,6 +95,6 @@ roles.forEach((role, index) => {
   });
 });
 
-// 🚀 Launch Bot
+// ✅ Launch
 bot.launch();
 console.log('🚀 Prof-Tech MVAI (Telegram Bot) is live!');
