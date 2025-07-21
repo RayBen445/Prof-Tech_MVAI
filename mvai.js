@@ -36,21 +36,11 @@ const roles = [
 ];
 
 const languages = [
-  { code: 'en', label: 'English' },
-  { code: 'fr', label: 'French' },
-  { code: 'es', label: 'Spanish' },
-  { code: 'de', label: 'German' },
-  { code: 'ar', label: 'Arabic' },
-  { code: 'hi', label: 'Hindi' },
-  { code: 'yo', label: 'Yoruba' },
-  { code: 'ig', label: 'Igbo' },
-  { code: 'zh', label: 'Chinese' },
-  { code: 'ru', label: 'Russian' },
-  { code: 'ja', label: 'Japanese' },
-  { code: 'pt', label: 'Portuguese' },
-  { code: 'it', label: 'Italian' },
-  { code: 'tr', label: 'Turkish' },
-  { code: 'sw', label: 'Swahili' }
+  { code: 'en', label: 'English' }, { code: 'fr', label: 'French' }, { code: 'es', label: 'Spanish' },
+  { code: 'de', label: 'German' }, { code: 'ar', label: 'Arabic' }, { code: 'hi', label: 'Hindi' },
+  { code: 'yo', label: 'Yoruba' }, { code: 'ig', label: 'Igbo' }, { code: 'zh', label: 'Chinese' },
+  { code: 'ru', label: 'Russian' }, { code: 'ja', label: 'Japanese' }, { code: 'pt', label: 'Portuguese' },
+  { code: 'it', label: 'Italian' }, { code: 'tr', label: 'Turkish' }, { code: 'sw', label: 'Swahili' }
 ];
 
 const aiAPIs = [
@@ -88,11 +78,7 @@ bot.on('text', async (ctx) => {
           .replace(/GiftedTech/gi, "Cool Shot Designs/Tech")
           .replace(/[“”]/g, '"');
 
-        response = `🤖 *Prof-Tech MVAI (Most Valued AI):*\n\n
-
-${cleaned}
-
-🕓 ${time}`;
+        response = `👨‍💻 *Prof-Tech MVAI (Most Valued AI)*\n\n${cleaned}\n\n⏰ ${time}`;
         break;
       }
     } catch (err) {}
@@ -103,17 +89,27 @@ ${cleaned}
 
 bot.start((ctx) => {
   ctx.replyWithMarkdown(
-    `👋 *Hello, I'm Prof-Tech MVAI!*
-
-🤖 I'm your AI-powered assistant developed by *Cool Shot Designs/Tech*.
-
-💡 Ask me anything about:
-🧮 Math | 💊 Health | 📊 Economics | 💻 Tech | 🤯 Brain Logic
-
-🎓 Use /role to switch brain power.
-🌐 Use /lang to change language.
-Ready when you are! 🚀`
+    `👋 *Hello, I'm Prof-Tech MVAI!*\n\n🤖 I'm your AI-powered assistant developed by *Cool Shot Designs/Tech*.\n\n💡 Ask me anything about:\n🧮 Math | 💊 Health | 📊 Economics | 💻 Tech | 🤯 Brain Logic\n\n🎓 Use /role to switch brain power.\n🌐 Use /lang to change language.\nReady when you are! 🚀`
   );
+});
+
+bot.command('about', (ctx) => {
+  ctx.replyWithMarkdown(
+    `ℹ️ *About Prof-Tech MVAI*\n\n` +
+    `🤖 Developed by *Cool Shot Designs/Tech*\n` +
+    `💡 Purpose: Multi-role intelligent assistant powered by AI APIs.\n` +
+    `🌐 Supports over 15 languages\n` +
+    `🧠 100+ Knowledge Roles: Math, Health, Economics, Philosophy, Coding, and more.\n\n` +
+    `🎯 Use /role to change role, /lang to switch language.\n\n` +
+    `🔄 Use /reset to clear your saved settings.\n🚀`
+  );
+});
+
+bot.command('reset', (ctx) => {
+  const userId = ctx.from.id;
+  delete userRoles[userId];
+  delete userLanguages[userId];
+  ctx.reply('🔄 Your settings have been reset to default.');
 });
 
 bot.command('role', (ctx) => {
@@ -132,16 +128,21 @@ bot.command('lang', (ctx) => {
   });
 });
 
-bot.on('callback_query', (ctx) => {
+bot.on('callback_query', async (ctx) => {
   const data = ctx.callbackQuery.data;
   const userId = ctx.from.id;
 
   if (data.startsWith('role_')) {
-    userRoles[userId] = data.replace('role_', '');
-    ctx.answerCbQuery(`✅ Role set to ${userRoles[userId]}`);
+    const role = data.replace('role_', '');
+    userRoles[userId] = role;
+    await ctx.editMessageText(`🧠 Role switched to: *${role}*`, { parse_mode: 'Markdown' });
+    ctx.answerCbQuery(`✅ Role set to ${role}`);
   } else if (data.startsWith('lang_')) {
-    userLanguages[userId] = data.replace('lang_', '');
-    ctx.answerCbQuery(`🌐 Language set to ${userLanguages[userId]}`);
+    const lang = data.replace('lang_', '');
+    userLanguages[userId] = lang;
+    const label = languages.find(l => l.code === lang)?.label;
+    await ctx.editMessageText(`🌍 Language switched to: *${label}*`, { parse_mode: 'Markdown' });
+    ctx.answerCbQuery(`🌐 Language set to ${lang}`);
   }
 });
 
