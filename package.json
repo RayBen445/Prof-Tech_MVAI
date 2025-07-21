@@ -1,0 +1,16 @@
+{
+  "name": "proftech-mvai",
+  "version": "1.0.0",
+  "description": "Prof-Tech MVAI Telegram Bot",
+  "main": "mvai.js",
+  "scripts": {
+    "start": "node mvai.js"
+  },
+  "keywords": ["telegram", "bot", "ai", "proftech", "mvai"],
+  "author": "Cool Shot Designs/Tech",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "telegraf": "^4.12.2"
+  }
+}
