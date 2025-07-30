@@ -197,5 +197,4 @@ app.post('/chat', (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ ProfTech MVAI API is running at http://localhost:${PORT}`);
 });
-`
 
