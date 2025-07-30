@@ -68,6 +68,8 @@ const aiAPIs = [
 
 // Telegram message handler
 bot.on('text', async (ctx) => {
+  if (ctx.message.text.startsWith('/')) return; // 👈 Prevents AI from intercepting commands
+
   const input = ctx.message.text;
   const userId = ctx.from.id;
   const role = userRoles[userId] || 'Brain Master';
