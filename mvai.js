@@ -152,7 +152,6 @@ app.get('/', (req, res) => {
   res.send('Prof-Tech MVAI Server Running ✅');
 });
 
-const express = require('express');
 const cors = require('cors');
 const { spawn } = require('child_process');
 
