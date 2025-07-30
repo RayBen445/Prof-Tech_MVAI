@@ -145,7 +145,10 @@ bot.command('lang', (ctx) => {
     }
   });
 });
-
+ app.post('/telegram', (req, res, next) => {
+  console.log('📩 Telegram webhook POST received');
+  next();
+});
 bot.on('callback_query', async (ctx) => {
   const data = ctx.callbackQuery.data;
   const userId = ctx.from.id;
@@ -167,7 +170,10 @@ bot.on('callback_query', async (ctx) => {
 bot.on('text', (ctx) => {
   console.log('📝 Text message received:', ctx.message.text);
 });
-
+app.post('/telegram', (req, res, next) => {
+  console.log('📩 Telegram webhook POST received');
+  next();
+});
 bot.on('callback_query', (ctx) => {
   console.log('🔘 Callback received:', ctx.callbackQuery.data);
 });
