@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 // Prof-Tech MVAI - Telegram Bot (Node.js + Telegraf + Express)
 
 const { Telegraf } = require('telegraf');
