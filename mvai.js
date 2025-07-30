@@ -163,8 +163,21 @@ bot.on('callback_query', async (ctx) => {
     ctx.answerCbQuery(`🌐 Language set to ${lang}`);
   }
 });
+// ✅ Add debug listeners for testing
+bot.on('text', (ctx) => {
+  console.log('📝 Text message received:', ctx.message.text);
+});
 
-// Telegram Webhook
+bot.on('callback_query', (ctx) => {
+  console.log('🔘 Callback received:', ctx.callbackQuery.data);
+});
+
+bot.command('start', (ctx) => {
+  console.log('🎬 /start command triggered');
+  ctx.reply('MVAI ready!');
+});
+
+// 🛰 Set webhook after listeners are registered
 bot.telegram.setWebhook('https://prof-tech-mvai.onrender.com/telegram');
 app.use(bot.webhookCallback('/telegram'));
 
