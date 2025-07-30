@@ -16,9 +16,11 @@
   "author": "Cool Shot Designs/Tech",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.6.0",
+    "axios": "^1.10.0",
     "body-parser": "^2.2.0",
     "express": "^5.1.0",
-    "telegraf": "^4.12.2"
+    "fs-extra": "^11.3.0",
+    "telegraf": "^4.12.2",
+    "yt-search": "^2.13.1"
   }
 }
