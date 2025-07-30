@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Prof-Tech MVAI Telegram Bot + API",
   "main": "mvai.js",
-  "type": "module",
   "scripts": {
     "start": "node mvai.js"
   },
