@@ -7,7 +7,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const { spawn } = require('child_process');
 
-const bot = new Telegraf('YOUR_TELEGRAM_BOT_TOKEN'); // replace with your actual token
+const bot = new Telegraf('8364036097:AAGBF57ihPNDglSTlshDVlE1D8OSwBJ0yzI'); // replace with your actual token
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -195,7 +195,7 @@ app.post('/chat', (req, res) => {
 
 // Start Server
 app.listen(PORT, () => {
-  console.log(✅ ProfTech MVAI API is running at http://localhost:${PORT});
+  console.log(`✅ ProfTech MVAI API is running at http://localhost:${PORT}`);
 });
 `
 
