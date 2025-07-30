@@ -152,12 +152,9 @@ app.get('/', (req, res) => {
   res.send('Prof-Tech MVAI Server Running ✅');
 });
 
-app.listen(3000, () => {
-  console.log('🌐 Express Server running at http://localhost:3000');
-
-import express from 'express';
-import cors from 'cors';
-import { spawn } from 'child_process';
+const express = require('express');
+const cors = require('cors');
+const { spawn } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
