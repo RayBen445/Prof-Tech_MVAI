@@ -5,10 +5,8 @@ const axios = require('axios');
 const express = require('express');
 const bodyParser = require('body-parser');
 
-const bot = new Telegraf('7886514278:AAEsK0lq5zh1Z8g7OQzWguoWxcRwVIw48A8');
+const bot = new Telegraf('8364036097:AAGBF57ihPNDglSTlshDVlE1D8OSwBJ0yzI');
 const app = express();
-
-app.use(bodyParser.json());
 
 let userRoles = {}; // Store user roles
 let userLanguages = {}; // Store user language choices
