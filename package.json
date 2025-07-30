@@ -1,5 +1,10 @@
 {
 <<<<<<< HEAD
+// Your local version
+=======
+// Remote version
+>>>>>>> [commit hash]
+
   "name": "proftech-mvai",
   "version": "1.0.0",
   "description": "Prof-Tech MVAI Telegram Bot",
