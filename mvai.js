@@ -166,24 +166,34 @@ bot.on('callback_query', async (ctx) => {
     ctx.answerCbQuery(`🌐 Language set to ${lang}`);
   }
 });
-// ✅ Add debug listeners for testing
+// ✅ Debug listeners for Telegram bot testing
+
+// Direct webhook routing for Telegram updates
+app.post('/telegram', bot.webhookCallback('/telegram'));
+
+// Logs every text message received
 bot.on('text', (ctx) => {
   console.log('📝 Text message received:', ctx.message.text);
 });
-app.post('/telegram', (req, res, next) => {
-  console.log('📩 Telegram webhook POST received');
-  next();
-});
+
+// Logs callback interactions from inline buttons
 bot.on('callback_query', (ctx) => {
   console.log('🔘 Callback received:', ctx.callbackQuery.data);
 });
 
-bot.command('start', (ctx) => {
+// Handles /start command and logs it
+bot.start((ctx) => {
   console.log('🎬 /start command triggered');
-  ctx.reply('MVAI ready!');
+  ctx.replyWithMarkdown(
+    `👋 *Hello, I'm Prof-Tech MVAI!*\n\n🤖 I'm your AI-powered assistant developed by *Cool Shot Designs/Tech*.\n\n💡 Ask me anything about:\n🧮 Math | 💊 Health | 📊 Economics | 💻 Tech | 🤯 Brain Logic\n\n🎓 Use /role to switch brain power.\n🌐 Use /lang to change language.\nReady when you are! 🚀`
+  );
 });
 
 // 🛰 Set webhook after listeners are registered
+app.post('/telegram', (req, res, next) => {
+  console.log('📦 Incoming payload:', JSON.stringify(req.body, null, 2));
+  next();
+});
 bot.telegram.setWebhook('https://prof-tech-mvai.onrender.com/telegram');
 app.post('/telegram', bot.webhookCallback('/telegram'), (req, res) => {
   res.status(200).send('OK');
