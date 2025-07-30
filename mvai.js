@@ -7,7 +7,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const { spawn } = require('child_process');
 
-const bot = new Telegraf(process.env.TELEGRAM_TOKEN); // ✅
+const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -66,9 +66,10 @@ const aiAPIs = [
   'https://api.giftedtech.co.ke/api/ai/ai'
 ];
 
-// Telegram message handler
 bot.on('text', async (ctx) => {
-  if (ctx.message.text.startsWith('/')) return; // 👈 Prevents AI from intercepting commands
+  console.log('📝 Text message received:', ctx.message.text);
+
+  if (ctx.message.text.startsWith('/')) return;
 
   const input = ctx.message.text;
   const userId = ctx.from.id;
@@ -105,8 +106,8 @@ bot.on('text', async (ctx) => {
   ctx.replyWithMarkdown(response);
 });
 
-// Bot commands
 bot.start((ctx) => {
+  console.log('🎬 /start command triggered');
   ctx.replyWithMarkdown(
     `👋 *Hello, I'm Prof-Tech MVAI!*\n\n🤖 I'm your AI-powered assistant developed by *Cool Shot Designs/Tech*.\n\n💡 Ask me anything about:\n🧮 Math | 💊 Health | 📊 Economics | 💻 Tech | 🤯 Brain Logic\n\n🎓 Use /role to switch brain power.\n🌐 Use /lang to change language.\nReady when you are! 🚀`
   );
@@ -145,11 +146,10 @@ bot.command('lang', (ctx) => {
     }
   });
 });
- app.post('/telegram', (req, res, next) => {
-  console.log('📩 Telegram webhook POST received');
-  next();
-});
+
 bot.on('callback_query', async (ctx) => {
+  console.log('🔘 Callback received:', ctx.callbackQuery.data);
+
   const data = ctx.callbackQuery.data;
   const userId = ctx.from.id;
 
@@ -166,45 +166,19 @@ bot.on('callback_query', async (ctx) => {
     ctx.answerCbQuery(`🌐 Language set to ${lang}`);
   }
 });
-// ✅ Debug listeners for Telegram bot testing
 
-// Direct webhook routing for Telegram updates
-app.post('/telegram', bot.webhookCallback('/telegram'));
-
-// Logs every text message received
-bot.on('text', (ctx) => {
-  console.log('📝 Text message received:', ctx.message.text);
-});
-
-// Logs callback interactions from inline buttons
-bot.on('callback_query', (ctx) => {
-  console.log('🔘 Callback received:', ctx.callbackQuery.data);
-});
-
-// Handles /start command and logs it
-bot.start((ctx) => {
-  console.log('🎬 /start command triggered');
-  ctx.replyWithMarkdown(
-    `👋 *Hello, I'm Prof-Tech MVAI!*\n\n🤖 I'm your AI-powered assistant developed by *Cool Shot Designs/Tech*.\n\n💡 Ask me anything about:\n🧮 Math | 💊 Health | 📊 Economics | 💻 Tech | 🤯 Brain Logic\n\n🎓 Use /role to switch brain power.\n🌐 Use /lang to change language.\nReady when you are! 🚀`
-  );
-});
-
-// 🛰 Set webhook after listeners are registered
-app.post('/telegram', (req, res, next) => {
-  console.log('📦 Incoming payload:', JSON.stringify(req.body, null, 2));
-  next();
-});
+// Webhook configuration
 bot.telegram.setWebhook('https://prof-tech-mvai.onrender.com/telegram');
 app.post('/telegram', bot.webhookCallback('/telegram'), (req, res) => {
   res.status(200).send('OK');
 });
 
-// Simple API endpoint (for testing)
+// Test endpoint
 app.get('/', (req, res) => {
   res.send('Prof-Tech MVAI Server Running ✅');
 });
 
-// Optional: Chat endpoint using Python subprocess
+// Optional chat endpoint
 app.post('/chat', (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: 'No prompt provided.' });
@@ -226,8 +200,7 @@ app.post('/chat', (req, res) => {
   });
 });
 
-// Start Server
+// Start server
 app.listen(PORT, () => {
   console.log(`✅ ProfTech MVAI API is running at http://localhost:${PORT}`);
 });
-
