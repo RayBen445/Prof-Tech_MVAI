@@ -1,0 +1,7 @@
+myenv/
+__pycache__/
+*.pyc
+*.tar.gz
+.env
+node_modules/
+node_modules/
