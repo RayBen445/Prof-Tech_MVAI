@@ -7,7 +7,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const { spawn } = require('child_process');
 
-const bot = new Telegraf('8364036097:AAGBF57ihPNDglSTlshDVlE1D8OSwBJ0yzI'); // replace with your actual token
+const bot = new Telegraf(process.env.TELEGRAM_TOKEN); // ✅
 const app = express();
 const PORT = process.env.PORT || 3000;
 
