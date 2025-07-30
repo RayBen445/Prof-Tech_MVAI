@@ -1,16 +1,22 @@
-
 // Prof-Tech MVAI - Telegram Bot (Node.js + Telegraf + Express)
 
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
 const express = require('express');
 const bodyParser = require('body-parser');
+const cors = require('cors');
+const { spawn } = require('child_process');
 
-const bot = new Telegraf('8364036097:AAGBF57ihPNDglSTlshDVlE1D8OSwBJ0yzI');
+const bot = new Telegraf('YOUR_TELEGRAM_BOT_TOKEN'); // replace with your actual token
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-let userRoles = {}; // Store user roles
-let userLanguages = {}; // Store user language choices
+app.use(cors());
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+let userRoles = {};
+let userLanguages = {};
 
 const roles = [
   'Mathematician', 'Econometician', 'Doctor', 'Brain Master', 'Physicist',
@@ -35,11 +41,21 @@ const roles = [
 ];
 
 const languages = [
-  { code: 'en', label: 'English' }, { code: 'fr', label: 'French' }, { code: 'es', label: 'Spanish' },
-  { code: 'de', label: 'German' }, { code: 'ar', label: 'Arabic' }, { code: 'hi', label: 'Hindi' },
-  { code: 'yo', label: 'Yoruba' }, { code: 'ig', label: 'Igbo' }, { code: 'zh', label: 'Chinese' },
-  { code: 'ru', label: 'Russian' }, { code: 'ja', label: 'Japanese' }, { code: 'pt', label: 'Portuguese' },
-  { code: 'it', label: 'Italian' }, { code: 'tr', label: 'Turkish' }, { code: 'sw', label: 'Swahili' }
+  { code: 'en', label: '🇬🇧 English' },
+  { code: 'fr', label: '🇫🇷 French' },
+  { code: 'es', label: '🇪🇸 Spanish' },
+  { code: 'de', label: '🇩🇪 German' },
+  { code: 'ar', label: '🇸🇦 Arabic' },
+  { code: 'hi', label: '🇮🇳 Hindi' },
+  { code: 'yo', label: '🇳🇬 Yoruba' },
+  { code: 'ig', label: '🇳🇬 Igbo' },
+  { code: 'zh', label: '🇨🇳 Chinese' },
+  { code: 'ru', label: '🇷🇺 Russian' },
+  { code: 'ja', label: '🇯🇵 Japanese' },
+  { code: 'pt', label: '🇵🇹 Portuguese' },
+  { code: 'it', label: '🇮🇹 Italian' },
+  { code: 'tr', label: '🇹🇷 Turkish' },
+  { code: 'sw', label: '🇰🇪 Swahili' }
 ];
 
 const aiAPIs = [
@@ -50,6 +66,7 @@ const aiAPIs = [
   'https://api.giftedtech.co.ke/api/ai/ai'
 ];
 
+// Telegram message handler
 bot.on('text', async (ctx) => {
   const input = ctx.message.text;
   const userId = ctx.from.id;
@@ -86,6 +103,7 @@ bot.on('text', async (ctx) => {
   ctx.replyWithMarkdown(response);
 });
 
+// Bot commands
 bot.start((ctx) => {
   ctx.replyWithMarkdown(
     `👋 *Hello, I'm Prof-Tech MVAI!*\n\n🤖 I'm your AI-powered assistant developed by *Cool Shot Designs/Tech*.\n\n💡 Ask me anything about:\n🧮 Math | 💊 Health | 📊 Economics | 💻 Tech | 🤯 Brain Logic\n\n🎓 Use /role to switch brain power.\n🌐 Use /lang to change language.\nReady when you are! 🚀`
@@ -96,11 +114,10 @@ bot.command('about', (ctx) => {
   ctx.replyWithMarkdown(
     `ℹ️ *About Prof-Tech MVAI*\n\n` +
     `🤖 Developed by *Cool Shot Designs/Tech*\n` +
-    `💡 Purpose: Multi-role intelligent assistant powered by AI APIs.\n` +
-    `🌐 Supports over 15 languages\n` +
-    `🧠 100+ Knowledge Roles: Math, Health, Economics, Philosophy, Coding, and more.\n\n` +
-    `🎯 Use /role to change role, /lang to switch language.\n\n` +
-    `🔄 Use /reset to clear your saved settings.\n🚀`
+    `💡 Multi-role intelligent assistant powered by AI APIs.\n` +
+    `🌐 Supports 15+ languages\n` +
+    `🧠 100+ Knowledge Roles: Math, Health, Economics, Coding, and more.\n\n` +
+    `🎯 Use /role to change role, /lang to switch language.\n🔄 Use /reset to clear your settings.\n🚀`
   );
 });
 
@@ -114,7 +131,7 @@ bot.command('reset', (ctx) => {
 bot.command('role', (ctx) => {
   ctx.reply('🧠 Choose a Brain Role:', {
     reply_markup: {
-      inline_keyboard: roles.map((r, i) => [{ text: `${i + 1} - ${r}`, callback_data: `role_${r}` }])
+      inline_keyboard: roles.map((r, i) => [{ text: `${i + 1}. ${r}`, callback_data: `role_${r}` }])
     }
   });
 });
@@ -145,22 +162,16 @@ bot.on('callback_query', async (ctx) => {
   }
 });
 
+// Telegram Webhook
 bot.telegram.setWebhook('https://prof-tech-mvai.onrender.com/telegram');
 app.use(bot.webhookCallback('/telegram'));
 
+// Simple API endpoint (for testing)
 app.get('/', (req, res) => {
   res.send('Prof-Tech MVAI Server Running ✅');
 });
 
-const cors = require('cors');
-const { spawn } = require('child_process');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(cors());
-app.use(express.json());
-
+// Optional: Chat endpoint using Python subprocess
 app.post('/chat', (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: 'No prompt provided.' });
@@ -177,14 +188,14 @@ app.post('/chat', (req, res) => {
   });
 
   python.on('close', (code) => {
-    if (code !== 0) {
-      return res.status(500).json({ error: 'Model failed.' });
-    }
+    if (code !== 0) return res.status(500).json({ error: 'Model failed.' });
     res.json({ response: output.trim() });
   });
 });
 
+// Start Server
 app.listen(PORT, () => {
-  console.log(`✅ ProfTech MVAI API is running at http://localhost:${PORT}`);
->>>>>>> 4c372a34c9c44f10bc0fdff978d60b022ae28d36
+  console.log(✅ ProfTech MVAI API is running at http://localhost:${PORT});
 });
+`
+
