@@ -185,7 +185,9 @@ bot.command('start', (ctx) => {
 
 // 🛰 Set webhook after listeners are registered
 bot.telegram.setWebhook('https://prof-tech-mvai.onrender.com/telegram');
-app.use(bot.webhookCallback('/telegram'));
+app.post('/telegram', bot.webhookCallback('/telegram'), (req, res) => {
+  res.status(200).send('OK');
+});
 
 // Simple API endpoint (for testing)
 app.get('/', (req, res) => {
