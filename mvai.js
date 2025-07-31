@@ -165,7 +165,6 @@ bot.on('callback_query', async (ctx) => {
 // 🌐 WEBHOOK SETUP
 bot.telegram.setWebhook('https://cool-shot-ai.onrender.com/telegram');
 app.post('/telegram', bot.webhookCallback('/telegram'));
-});
 
 // 🔧 SERVER STATUS & CHAT ENDPOINT
 app.get('/', (req, res) => {
