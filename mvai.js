@@ -1,4 +1,4 @@
-// Prof-Tech MVAI - Telegram Bot (Node.js + Telegraf + Express)
+// 🚀 Cool Shot AI - Telegram Bot (Node.js + Telegraf + Express)
 
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
@@ -66,18 +66,17 @@ const aiAPIs = [
   'https://api.giftedtech.co.ke/api/ai/ai'
 ];
 
-// TEXT MESSAGE HANDLER
+// 📩 TEXT MESSAGE HANDLER
 bot.on('text', async (ctx) => {
-  console.log('📝 Text message received:', ctx.message.text);
-  if (ctx.message.text.startsWith('/')) return;
-
   const input = ctx.message.text;
   const userId = ctx.from.id;
+  if (input.startsWith('/')) return;
+
   const role = userRoles[userId] || 'Brain Master';
   const lang = userLanguages[userId] || 'en';
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  await ctx.sendChatAction("typing");
+  await ctx.sendChatAction('typing');
   let response = '🤖 Sorry, I couldn’t generate a reply.';
 
   for (let url of aiAPIs) {
@@ -88,35 +87,36 @@ bot.on('text', async (ctx) => {
       });
       if (data.result) {
         const cleaned = data.result
-          .replace(/ChatGPT/gi, "Prof-Tech MVAI")
-          .replace(/Gifted\\s*AI/gi, "Prof-Tech MVAI")
-          .replace(/OpenAI/gi, "Cool Shot Designs/Tech")
-          .replace(/I['’`]?m an AI language model/gi, "I'm Prof-Tech MVAI, your AI companion")
-          .replace(/I am an AI developed by.*?[\\.\\n]/gi, "I'm Prof-Tech MVAI, built by Cool Shot Designs/Tech.\\n")
-          .replace(/I was created by.*?[\\.\\n]/gi, "I was created by Cool Shot Designs/Tech.\\n")
-          .replace(/GiftedTech/gi, "Cool Shot Designs/Tech")
+          .replace(/Prof-Tech MVAI|Gifted\s*AI|ChatGPT|GiftedTech|OpenAI/gi, 'Cool Shot AI')
+          .replace(/Cool Shot Designs\/Tech/gi, 'Cool Shot Systems')
+          .replace(/I['’`]?m an AI language model/gi, "I'm Cool Shot AI, your intelligent assistant")
+          .replace(/I was created by.*?[\\.\\n]/gi, "I was created by Cool Shot Systems.\\n")
           .replace(/[“”]/g, '"');
 
-        response = `👨‍💻 *Prof-Tech MVAI (Most Valued AI)*\\n\\n${cleaned}\\n\\n⏰ ${time}`;
+        response = `👨‍💻 *Cool Shot AI (Most Valued AI)*\n\n${cleaned}\n\n⏰ ${time}`;
         break;
       }
     } catch (err) {}
   }
 
-  ctx.replyWithMarkdown(response);
+  ctx.replyWithMarkdownV2(response);
 });
 
-// BOT COMMANDS
+// 🎬 COMMAND HANDLERS
 bot.start((ctx) => {
-  console.log('🎬 /start command triggered');
-  ctx.replyWithMarkdown(
-    `👋 *Hello, I'm Prof-Tech MVAI!*\\n\\n🤖 I'm your AI-powered assistant developed by *Cool Shot Designs/Tech*.\\n\\n💡 Ask me anything about:\\n🧮 Math | 💊 Health | 📊 Economics | 💻 Tech | 🤯 Brain Logic\\n\\n🎓 Use /role to switch brain power.\\n🌐 Use /lang to change language.\\nReady when you are! 🚀`
+  ctx.replyWithMarkdownV2(
+    "👋 *Hello, I'm Cool Shot AI!*\\n\\n" +
+    "🤖 Developed by *Cool Shot Systems*, your intelligent assistant is now online\\!\\n\\n" +
+    "💡 Ask me anything:\\n🧮 Math | 💊 Health | 💻 Tech | 🎭 Creativity\\n\\n" +
+    "🎓 Use /role to switch brain mode\\n🌐 Use /lang to choose language\\n🚀 Let’s go\\!"
   );
 });
 
 bot.command('about', (ctx) => {
-  ctx.replyWithMarkdown(
-    `ℹ️ *About Prof-Tech MVAI*\\n\\n🤖 Developed by *Cool Shot Designs/Tech*\\n💡 Multi-role intelligent assistant powered by AI APIs.\\n🌐 Supports 15+ languages\\n🧠 100+ Knowledge Roles: Math, Health, Economics, Coding, and more.\\n\\n🎯 Use /role to change role, /lang to switch language.\\n🔄 Use /reset to clear your settings.\\n🚀`
+  ctx.replyWithMarkdownV2(
+    "ℹ️ *About Cool Shot AI*\\n\\n" +
+    "🤖 Developed by *Cool Shot Systems*\\n💡 Multi-role intelligent assistant powered by AI endpoints\\n🌐 15+ languages supported\\n🧠 100+ Knowledge Roles\\n\\n" +
+    "🎯 Use /role and /lang\\n🔄 Use /reset to reset settings"
   );
 });
 
@@ -124,7 +124,7 @@ bot.command('reset', (ctx) => {
   const userId = ctx.from.id;
   delete userRoles[userId];
   delete userLanguages[userId];
-  ctx.reply('🔄 Your settings have been reset to default.');
+  ctx.reply('🔄 Settings have been reset to default.');
 });
 
 bot.command('role', (ctx) => {
@@ -143,9 +143,8 @@ bot.command('lang', (ctx) => {
   });
 });
 
-// CALLBACKS
+// 🧠 CALLBACK QUERY HANDLER
 bot.on('callback_query', async (ctx) => {
-  console.log('🔘 Callback received:', ctx.callbackQuery.data);
   const data = ctx.callbackQuery.data;
   const userId = ctx.from.id;
 
@@ -163,33 +162,31 @@ bot.on('callback_query', async (ctx) => {
   }
 });
 
-// WEBHOOK SETUP
-bot.telegram.setWebhook('https://prof-tech-mvai.onrender.com/telegram');
+// 🌐 WEBHOOK SETUP
+bot.telegram.setWebhook('https://cool-shot-ai.onrender.com/telegram');
 app.post('/telegram', bot.webhookCallback('/telegram'), (req, res) => {
   res.status(200).send('OK');
 });
 
-// TEST ENDPOINT
+// 🔧 SERVER STATUS & CHAT ENDPOINT
 app.get('/', (req, res) => {
-  res.send('Prof-Tech MVAI Server Running ✅');
+  res.send('Cool Shot AI Server is Running ✅');
 });
 
-// CHAT ENDPOINT (OPTIONAL)
 app.post('/chat', (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: 'No prompt provided.' });
 
   const python = spawn('python3', ['model.py', prompt]);
   let output = '';
-  python.stdout.on('data', (data) => output += data.toString());
-  python.stderr.on('data', (data) => console.error('Python error:', data.toString()));
-  python.on('close', (code) => {
+  python.stdout.on('data', data => output += data.toString());
+  python.stderr.on('data', data => console.error('Python error:', data.toString()));
+  python.on('close', code => {
     if (code !== 0) return res.status(500).json({ error: 'Model failed.' });
     res.json({ response: output.trim() });
   });
 });
 
-// START SERVER
 app.listen(PORT, () => {
-  console.log(`✅ ProfTech MVAI API is running at http://localhost:${PORT}`);
+  console.log(`✅ Cool Shot AI is live at http://localhost:${PORT}`);
 });
