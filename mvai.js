@@ -17,7 +17,7 @@ function escapeMarkdownV2(text) {
   return text.replace(/([_*\[\]()~`>#+=|{}.!-])/g, '\\$1');
 }
 
-// Roles & Languages Setup
+// 🧠 Roles Setup
 let userRoles = {};
 let userLanguages = {};
 
@@ -77,7 +77,11 @@ bot.on('text', async (ctx) => {
 
   const role = userRoles[userId] || 'Brain Master';
   const lang = userLanguages[userId] || 'en';
-  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const time = new Date().toLocaleTimeString('en-NG', {
+    timeZone: 'Africa/Lagos',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 
   await ctx.sendChatAction('typing');
   let response = '🤖 Sorry, I couldn’t generate a reply.';
@@ -85,7 +89,11 @@ bot.on('text', async (ctx) => {
   for (let url of aiAPIs) {
     try {
       const { data } = await axios.get(url, {
-        params: { apikey: process.env.AI_API_KEY || 'gifted', q: `${role}: ${input}`, lang },
+        params: {
+          apikey: process.env.AI_API_KEY || 'gifted',
+          q: `${role}: ${input}`,
+          lang
+        },
         timeout: 8000
       });
 
@@ -110,7 +118,7 @@ bot.on('text', async (ctx) => {
   ctx.replyWithMarkdownV2(response);
 });
 
-// 📌 Commands
+// 🎬 Bot Commands
 bot.start((ctx) => {
   ctx.replyWithMarkdownV2(
     "👋 *Hello, I'm Cool Shot AI!*\\n\\n" +
@@ -146,12 +154,12 @@ bot.command('role', (ctx) => {
 bot.command('lang', (ctx) => {
   ctx.reply('🌍 Choose Language:', {
     reply_markup: {
-      inline_keyboard: languages.map((l) => [{ text: l.label, callback_data: `lang_${l.code}` }])
+      inline_keyboard: languages.map(l => [{ text: l.label, callback_data: `lang_${l.code}` }])
     }
   });
 });
 
-// 🔄 Callback Query Handler
+// 🔁 Callback Query Handler
 bot.on('callback_query', async (ctx) => {
   const data = ctx.callbackQuery.data;
   const userId = ctx.from.id;
@@ -170,15 +178,19 @@ bot.on('callback_query', async (ctx) => {
   }
 });
 
-// 🌐 Webhook Setup
+// 🌐 Webhook & Health Endpoints
 bot.telegram.setWebhook('https://prof-tech-mvai.onrender.com/telegram');
 app.post('/telegram', bot.webhookCallback('/telegram'));
 
-// Optional GET route
 app.get('/telegram', (req, res) => {
   res.send('🔗 Telegram webhook endpoint is active (POST only)');
 });
 
+app.get('/ping', (req, res) => {
+  res.status(200).send('🏓 Cool Shot AI server is alive!');
+});
+
+// 🚀 Start the Server
 app.listen(PORT, () => {
   console.log(`✅ Cool Shot AI is live at http://localhost:${PORT}`);
 });
