@@ -65,7 +65,6 @@ const aiAPIs = [
   'https://api.giftedtech.co.ke/api/ai/copilot',
   'https://api.giftedtech.co.ke/api/ai/ai'
 ];
-
 // 📩 TEXT MESSAGE HANDLER
 bot.on('text', async (ctx) => {
   const input = ctx.message.text;
@@ -82,7 +81,7 @@ bot.on('text', async (ctx) => {
   for (let url of aiAPIs) {
     try {
       const { data } = await axios.get(url, {
-        params: { apikey: 'gifted', q: `${role}: ${input}`, lang },
+        params: { apikey: process.env.AI_API_KEY || 'gifted', q: `${role}: ${input}`, lang },
         timeout: 8000
       });
       if (data.result) {
@@ -96,7 +95,9 @@ bot.on('text', async (ctx) => {
         response = `👨‍💻 *Cool Shot AI (Most Valued AI)*\n\n${cleaned}\n\n⏰ ${time}`;
         break;
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error('❌ AI Request Failed:', err.message);
+    }
   }
 
   ctx.replyWithMarkdownV2(response);
@@ -162,9 +163,17 @@ bot.on('callback_query', async (ctx) => {
   }
 });
 
-// 🌐 WEBHOOK SETUP
-bot.telegram.setWebhook('https://cool-shot-ai.onrender.com/telegram');
-app.post('/telegram', bot.webhookCallback('/telegram'));
+// 🌐 WEBHOOK SETUP WITH LOGGING
+bot.telegram.setWebhook('https://prof-tech-mvai.onrender.com/telegram');
+app.post('/telegram', (req, res, next) => {
+  console.log('🔔 Telegram Webhook Hit!');
+  next();
+}, bot.webhookCallback('/telegram'));
+
+// Optional GET route for manual ping
+app.get('/telegram', (req, res) => {
+  res.send('🔗 Telegram webhook endpoint is active (POST only)');
+});
 
 // 🔧 SERVER STATUS & CHAT ENDPOINT
 app.get('/', (req, res) => {
@@ -177,6 +186,7 @@ app.post('/chat', (req, res) => {
 
   const python = spawn('python3', ['model.py', prompt]);
   let output = '';
+
   python.stdout.on('data', data => output += data.toString());
   python.stderr.on('data', data => console.error('Python error:', data.toString()));
   python.on('close', code => {
