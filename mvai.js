@@ -1,11 +1,8 @@
-// 🚀 Cool Shot AI - Telegram Bot (Node.js + Telegraf + Express)
-
 const { Telegraf } = require('telegraf');
 const axios = require('axios');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { spawn } = require('child_process');
 
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 const app = express();
@@ -15,6 +12,12 @@ app.use(cors());
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// MarkdownV2 Escaping Helper
+function escapeMarkdownV2(text) {
+  return text.replace(/([_*\[\]()~`>#+=|{}.!-])/g, '\\$1');
+}
+
+// Roles & Languages Setup
 let userRoles = {};
 let userLanguages = {};
 
@@ -65,7 +68,8 @@ const aiAPIs = [
   'https://api.giftedtech.co.ke/api/ai/copilot',
   'https://api.giftedtech.co.ke/api/ai/ai'
 ];
-// 📩 TEXT MESSAGE HANDLER
+
+// 📩 Text Handler
 bot.on('text', async (ctx) => {
   const input = ctx.message.text;
   const userId = ctx.from.id;
@@ -84,15 +88,18 @@ bot.on('text', async (ctx) => {
         params: { apikey: process.env.AI_API_KEY || 'gifted', q: `${role}: ${input}`, lang },
         timeout: 8000
       });
-      if (data.result) {
-        const cleaned = data.result
-          .replace(/Prof-Tech MVAI|Gifted\s*AI|ChatGPT|GiftedTech|OpenAI/gi, 'Cool Shot AI')
-          .replace(/Cool Shot Designs\/Tech/gi, 'Cool Shot Systems')
-          .replace(/I['’`]?m an AI language model/gi, "I'm Cool Shot AI, your intelligent assistant")
-          .replace(/I was created by.*?[\\.\\n]/gi, "I was created by Cool Shot Systems.\\n")
-          .replace(/[“”]/g, '"');
 
-        response = `👨‍💻 *Cool Shot AI (Most Valued AI)*\n\n${cleaned}\n\n⏰ ${time}`;
+      if (data.result) {
+        const cleaned = escapeMarkdownV2(
+          data.result
+            .replace(/Prof-Tech MVAI|Gifted\s*AI|ChatGPT|GiftedTech|OpenAI/gi, 'Cool Shot AI')
+            .replace(/Cool Shot Designs\/Tech/gi, 'Cool Shot Systems')
+            .replace(/I['’`]?m an AI language model/gi, "I'm Cool Shot AI, your intelligent assistant")
+            .replace(/I was created by.*?[\\.\\n]/gi, "I was created by Cool Shot Systems.\n")
+            .replace(/[“”]/g, '"')
+        );
+
+        response = `👨‍💻 *Cool Shot AI \\(Most Valued AI\\)*\\n\\n${cleaned}\\n\\n⏰ ${time}`;
         break;
       }
     } catch (err) {
@@ -103,7 +110,7 @@ bot.on('text', async (ctx) => {
   ctx.replyWithMarkdownV2(response);
 });
 
-// 🎬 COMMAND HANDLERS
+// 📌 Commands
 bot.start((ctx) => {
   ctx.replyWithMarkdownV2(
     "👋 *Hello, I'm Cool Shot AI!*\\n\\n" +
@@ -144,7 +151,7 @@ bot.command('lang', (ctx) => {
   });
 });
 
-// 🧠 CALLBACK QUERY HANDLER
+// 🔄 Callback Query Handler
 bot.on('callback_query', async (ctx) => {
   const data = ctx.callbackQuery.data;
   const userId = ctx.from.id;
@@ -152,47 +159,24 @@ bot.on('callback_query', async (ctx) => {
   if (data.startsWith('role_')) {
     const role = data.replace('role_', '');
     userRoles[userId] = role;
-    await ctx.editMessageText(`🧠 Role switched to: *${role}*`, { parse_mode: 'Markdown' });
+    await ctx.editMessageText(`🧠 Role switched to: *${escapeMarkdownV2(role)}*`, { parse_mode: 'MarkdownV2' });
     ctx.answerCbQuery(`✅ Role set to ${role}`);
   } else if (data.startsWith('lang_')) {
     const lang = data.replace('lang_', '');
     userLanguages[userId] = lang;
-    const label = languages.find(l => l.code === lang)?.label;
-    await ctx.editMessageText(`🌍 Language switched to: *${label}*`, { parse_mode: 'Markdown' });
+    const label = languages.find(l => l.code === lang)?.label || lang;
+    await ctx.editMessageText(`🌍 Language switched to: *${escapeMarkdownV2(label)}*`, { parse_mode: 'MarkdownV2' });
     ctx.answerCbQuery(`🌐 Language set to ${lang}`);
   }
 });
 
-// 🌐 WEBHOOK SETUP WITH LOGGING
+// 🌐 Webhook Setup
 bot.telegram.setWebhook('https://prof-tech-mvai.onrender.com/telegram');
-app.post('/telegram', (req, res, next) => {
-  console.log('🔔 Telegram Webhook Hit!');
-  next();
-}, bot.webhookCallback('/telegram'));
+app.post('/telegram', bot.webhookCallback('/telegram'));
 
-// Optional GET route for manual ping
+// Optional GET route
 app.get('/telegram', (req, res) => {
   res.send('🔗 Telegram webhook endpoint is active (POST only)');
-});
-
-// 🔧 SERVER STATUS & CHAT ENDPOINT
-app.get('/', (req, res) => {
-  res.send('Cool Shot AI Server is Running ✅');
-});
-
-app.post('/chat', (req, res) => {
-  const { prompt } = req.body;
-  if (!prompt) return res.status(400).json({ error: 'No prompt provided.' });
-
-  const python = spawn('python3', ['model.py', prompt]);
-  let output = '';
-
-  python.stdout.on('data', data => output += data.toString());
-  python.stderr.on('data', data => console.error('Python error:', data.toString()));
-  python.on('close', code => {
-    if (code !== 0) return res.status(500).json({ error: 'Model failed.' });
-    res.json({ response: output.trim() });
-  });
 });
 
 app.listen(PORT, () => {
