@@ -107,7 +107,7 @@ bot.on('text', async (ctx) => {
             .replace(/[“”]/g, '"')
         );
 
-        response = `👨‍💻 *Cool Shot AI \\(Cool Shot Systems\\)*\\n${cleaned}\\n⏰ ${time}`;
+        response = `👨‍💻 *Cool Shot AI \\(Cool Shot Systems\\)*\\${cleaned}\\⏰ ${time}`;
         break;
       }
     } catch (err) {
