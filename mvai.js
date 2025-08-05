@@ -107,11 +107,11 @@ bot.on('text', async (ctx) => {
             .replace(/[“”]/g, '"')
         );
 
-        response = `👨‍💻 *Cool Shot AI \\(Most Valued AI\\)*\\n\\n${cleaned}\\n\\n⏰ ${time}`;
+        response = `👨‍💻 *Cool Shot AI \\(Cool Shot Systems\\)*\\n${cleaned}\\n⏰ ${time}`;
         break;
       }
     } catch (err) {
-      console.error('❌ AI Request Failed:', err.message);
+      console.error('❌ AI Request Failed:', err.message)
     }
   }
 
