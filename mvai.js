@@ -419,6 +419,7 @@ User Query: ${prompt}`;
           .replace(/I was (created|developed|made|built) by Google/gi, "I was created by Cool Shot Systems")
           .replace(/Google AI|Google's AI|Gemini AI/gi, "Cool Shot AI")
           .replace(/I'm here to help/gi, "I'm Cool Shot AI, here to help")
+          .replace(/\*\*(.+?)\*\*/g, '*$1*')
           .trim()
       };
     }
@@ -633,8 +634,8 @@ async function processAIQuery(ctx, queryText) {
   if (geminiAI) {
     try {
       const geminiResponse = await callGeminiAPI(queryText, role, lang);
-      if (geminiResponse?.response) {
-        return geminiResponse.response;
+      if (geminiResponse?.result) {
+        return geminiResponse.result;
       }
     } catch (err) {
       console.error('❌ Google Gemini API Failed:', err.message);
@@ -908,6 +909,7 @@ bot.on('text', async (ctx, next) => {
             .replace(/I was (created|developed|made|built) by Google/gi, "I was created by Cool Shot Systems")
             .replace(/Google AI|Google's AI|Gemini AI/gi, "Cool Shot AI")
             .replace(/[""]/g, '"')
+            .replace(/\*\*(.+?)\*\*/g, '*$1*')
         );
         
         // Beautiful response formatting
@@ -2057,7 +2059,9 @@ bot.command('translate', async (ctx) => {
         });
         
         if (data && data.gifteddevs && data.gifteddevs.trim()) {
-          translationResult = data.gifteddevs.trim();
+          translationResult = data.gifteddevs
+            .trim()
+            .replace(/\*\*(.+?)\*\*/g, '*$1*');
           console.log('✅ AI API fallback translation successful');
           break;
         }
