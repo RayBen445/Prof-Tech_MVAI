@@ -269,47 +269,74 @@ bot.on('text', async (ctx, next) => {
   // Support query logic
   if (supportState[ctx.from.id]) {
     supportState[ctx.from.id] = false; // Reset state after receiving
+    const userName = ctx.from.first_name || 'User';
+    const username = ctx.from.username ? `@${ctx.from.username}` : 'no_username';
+    
     for (const adminId of getAdminIds()) {
       await bot.telegram.sendMessage(
         adminId,
-        `📩 Support query from ${ctx.from.first_name || 'User'} (@${ctx.from.username || 'no_username'}) (${ctx.from.id}):\n${ctx.message.text}`
+        `📩 *New Support Request*\\n\\n` +
+        `👤 **From:** ${escapeMarkdownV2(userName)} \\(${username}\\)\\n` +
+        `🆔 **User ID:** \`${ctx.from.id}\`\\n\\n` +
+        `💬 **Message:**\\n${escapeMarkdownV2(ctx.message.text)}`,
+        { parse_mode: 'MarkdownV2' }
       );
     }
-    return ctx.reply('✅ Your support query has been sent to the admin.');
+    return ctx.replyWithMarkdownV2(
+      '✅ *Support Request Sent*\\n\\n' +
+      '📨 Your message has been forwarded to our admin team\\!\\n' +
+      '⏰ Expect a response soon\\.'
+    );
   }
 
   // Support request via /support
   if (ctx.message.text.startsWith('/support ')) {
     const supportText = ctx.message.text.replace('/support ', '');
+    const userName = ctx.from.first_name || 'User';
+    const username = ctx.from.username ? `@${ctx.from.username}` : 'no_username';
+    
     for (const adminId of getAdminIds()) {
-      await bot.telegram.sendMessage(adminId, `📩 Support request from ${ctx.from.first_name || 'User'} (@${ctx.from.username || 'no_username'}):\n${supportText}`);
+      await bot.telegram.sendMessage(
+        adminId, 
+        `📩 *Support Request*\\n\\n` +
+        `👤 **From:** ${escapeMarkdownV2(userName)} \\(${username}\\)\\n` +
+        `🆔 **User ID:** \`${ctx.from.id}\`\\n\\n` +
+        `💬 **Message:**\\n${escapeMarkdownV2(supportText)}`,
+        { parse_mode: 'MarkdownV2' }
+      );
     }
-    return ctx.reply('✅ Your support request has been sent to the team.');
+    return ctx.replyWithMarkdownV2(
+      '✅ *Support Request Sent*\\n\\n' +
+      '📨 Your message has been forwarded to our team\\!\\n' +
+      '⏰ Expect a response soon\\.'
+    );
   }
   // Broadcast handler (admin only)
   if (ctx.message.text.startsWith('/broadcast ')) {
-    if (!isAdmin(ctx.from.id)) return;
-    const msg = ctx.message.text.replace('/broadcast ', '');
-    for (const userId of USER_IDS) {
-      await bot.telegram.sendMessage(userId, `📢 Admin Broadcast:\n${msg}`);
+    if (!isAdmin(ctx.from.id)) {
+      return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can broadcast messages\\.');
     }
-    return ctx.reply('✅ Broadcast sent.');
+    const msg = ctx.message.text.replace('/broadcast ', '');
+    const adminName = ctx.from.first_name || 'Admin';
+    
+    for (const userId of USER_IDS) {
+      await bot.telegram.sendMessage(
+        userId, 
+        `📢 *Admin Broadcast*\\n\\n` +
+        `👤 **From:** ${escapeMarkdownV2(adminName)}\\n\\n` +
+        `💬 **Message:**\\n${escapeMarkdownV2(msg)}`,
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+    return ctx.replyWithMarkdownV2(
+      '✅ *Broadcast Complete*\\n\\n' +
+      `📤 Message sent to ${USER_IDS.size} users\\!`
+    );
   }
 
-  // Unknown command handler
-  const knownCommands = [
-    '/start', '/role', '/lang', '/about', '/reset', '/support', '/buttons', '/admin', '/ping', '/help', 
-    '/users', '/promote', '/demote', '/admininfo'
-  ];
-  if (
-    ctx.message.text.startsWith('/') &&
-    !knownCommands.includes(ctx.message.text.split(' ')[0])
-  ) {
-    return ctx.reply('❓ Unknown command. Type /help or /about for help or /buttons for quick actions.');
-  }
-
-  // Ignore *recognized* commands, let their handlers process
-  if (knownCommands.includes(ctx.message.text.split(' ')[0])) {
+  // Let command handlers process first, then handle unknown commands
+  if (ctx.message.text.startsWith('/')) {
+    // Pass to command handlers first
     if (next) return next();
     else return;
   }
@@ -343,7 +370,14 @@ bot.on('text', async (ctx, next) => {
             .replace(/I was created by.*?[\\.\\n]/gi, "I was created by Cool Shot Systems.\n")
             .replace(/[“”]/g, '"')
         );
-        response = `👨‍💻 *Cool Shot AI \\(Cool Shot Systems\\)*\\n${cleaned}\\n⏰ ${time}`;
+        // Beautiful response formatting
+        const roleLabel = roles.includes(role) ? role : 'Brain Master';
+        const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
+        
+        response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\\n` +
+                  `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\\n\\n` +
+                  `${cleaned}\\n\\n` +
+                  `✨ _Powered by Cool Shot Systems_`;
         break;
       }
     } catch (err) {
@@ -389,15 +423,19 @@ bot.command('help', async (ctx) => {
 bot.command('support', async (ctx) => {
   await updateUserInfo(ctx);
   ctx.replyWithMarkdownV2(
-    "🆘 *Cool Shot AI Support*\\n\\n" +
-    "For help or feedback, contact support@coolshotsystems.com or type /support <your message> here.\\nAdmins will respond ASAP."
+    "🆘 *Cool Shot AI Support Center*\\n\\n" +
+    "💌 *Contact Options:*\\n" +
+    "• Email: support@coolshotsystems\\.com\\n" +
+    "• Quick Help: `/support <your message>`\\n\\n" +
+    "⚡ *Response Time:* Our admins respond ASAP\\!\\n\\n" +
+    "💡 *Tip:* Be specific about your issue for faster resolution\\."
   );
 });
 
 // Ping Command for Telegram
 bot.command('ping', async (ctx) => {
   await updateUserInfo(ctx);
-  ctx.reply('🏓 Cool Shot AI is alive!');
+  ctx.replyWithMarkdownV2('🏓 *Cool Shot AI Status: ONLINE*\\n\\n✅ All systems operational\\!');
 });
 
 // Reset Command
@@ -406,13 +444,18 @@ bot.command('reset', async (ctx) => {
   const userId = ctx.from.id;
   delete userRoles[userId];
   delete userLanguages[userId];
-  ctx.reply('🔄 Settings have been reset to default.');
+  ctx.replyWithMarkdownV2(
+    '🔄 *Settings Reset Complete*\\n\\n' +
+    '✅ Role: Default \\(Brain Master\\)\\n' +
+    '✅ Language: Default \\(English\\)\\n\\n' +
+    '💡 Use /role and /lang to customize again\\!'
+  );
 });
 
 // Role Selection
 bot.command('role', async (ctx) => {
   await updateUserInfo(ctx);
-  ctx.reply('🧠 Choose a Brain Role:', {
+  ctx.replyWithMarkdownV2('🧠 *Choose Your Expert Role*\\n\\n💡 Select a role to customize AI responses:', {
     reply_markup: {
       inline_keyboard: chunkArray(roles, 4).map(row =>
         row.map(r => ({ text: r, callback_data: `role_${r}` }))
@@ -424,7 +467,7 @@ bot.command('role', async (ctx) => {
 // Language Selection
 bot.command('lang', async (ctx) => {
   await updateUserInfo(ctx);
-  ctx.reply('🌍 Choose Language:', {
+  ctx.replyWithMarkdownV2('🌍 *Choose Your Language*\\n\\n🗣️ Select your preferred language for responses:', {
     reply_markup: {
       inline_keyboard: chunkArray(languages, 3).map(row =>
         row.map(l => ({ text: l.label, callback_data: `lang_${l.code}` }))
@@ -436,17 +479,17 @@ bot.command('lang', async (ctx) => {
 // Quick Buttons
 bot.command('buttons', async (ctx) => {
   await updateUserInfo(ctx);
-  ctx.reply('⚙️ Quick Settings:', {
+  ctx.replyWithMarkdownV2('⚙️ *Quick Settings Menu*\\n\\n🚀 Choose an action below:', {
     reply_markup: {
       inline_keyboard: [
         [{ text: '🧠 Choose Role', callback_data: 'show_role' }],
         [{ text: '🌍 Choose Language', callback_data: 'show_lang' }],
-        [{ text: 'ℹ️ About', callback_data: 'show_about' }],
-        [{ text: '🔄 Reset', callback_data: 'do_reset' }],
-        [{ text: '🆘 Support', callback_data: 'start_support' }],
+        [{ text: 'ℹ️ About Cool Shot AI', callback_data: 'show_about' }],
+        [{ text: '🔄 Reset Settings', callback_data: 'do_reset' }],
+        [{ text: '🆘 Get Support', callback_data: 'start_support' }],
         [{ text: '🛡️ Admin Panel', callback_data: 'show_admin' }],
-        [{ text: '🏓 Ping', callback_data: 'ping_cmd' }],
-        [{ text: '🆘 Help', callback_data: 'help_cmd' }]
+        [{ text: '🏓 System Status', callback_data: 'ping_cmd' }],
+        [{ text: '📚 Help Guide', callback_data: 'help_cmd' }]
       ]
     }
   });
@@ -596,24 +639,42 @@ bot.command('demote', async (ctx) => {
 // Admin Panel Command
 bot.command('admin', async (ctx) => {
   await updateUserInfo(ctx);
-  if (!isAdmin(ctx.from.id)) return ctx.reply('⛔️ Admins only.');
+  if (!isAdmin(ctx.from.id)) {
+    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\n🛡️ This command is reserved for administrators only\\.');
+  }
 
   const buttons = [
     [{ text: '📊 View Stats', callback_data: 'admin_stats' }],
-    [{ text: '📢 Broadcast', callback_data: 'admin_broadcast' }],
-    [{ text: '🆘 View Support Requests', callback_data: 'admin_support' }]
+    [{ text: '📢 Broadcast Message', callback_data: 'admin_broadcast' }],
+    [{ text: '🆘 Support Requests', callback_data: 'admin_support' }]
   ];
   
   // Add user management buttons for RayBen445
   if (isRayBen(ctx.from.id)) {
-    buttons.push([{ text: '👥 View All Users', callback_data: 'admin_users' }]);
+    buttons.push([{ text: '👥 Manage Users', callback_data: 'admin_users' }]);
   }
 
-  ctx.reply('🛡️ Admin Panel', {
+  ctx.replyWithMarkdownV2('🛡️ *Admin Control Panel*\\n\\n✨ Welcome to the administrative dashboard\\!', {
     reply_markup: {
       inline_keyboard: buttons
     }
   });
+});
+
+// Unknown Command Handler (catch-all)
+bot.command('*', async (ctx) => {
+  await updateUserInfo(ctx);
+  const command = ctx.message.text.split(' ')[0];
+  ctx.replyWithMarkdownV2(
+    `❓ *Unknown Command*\\n\\n` +
+    `The command \`${escapeMarkdownV2(command)}\` is not recognized\\.\\n\\n` +
+    `🆘 *Available Commands:*\\n` +
+    `• /help \\- View all commands\\n` +
+    `• /about \\- Learn about Cool Shot AI\\n` +
+    `• /buttons \\- Quick action menu\\n` +
+    `• /start \\- Welcome message\\n\\n` +
+    `💡 *Tip:* Use /help to see the complete command list\\!`
+  );
 });
 
 // ========== Callback Query Handler ==========
@@ -626,35 +687,47 @@ bot.on('callback_query', async (ctx) => {
   if (data.startsWith('role_')) {
     const role = data.replace('role_', '');
     userRoles[userId] = role;
-    await ctx.editMessageText(`🧠 Role switched to: *${escapeMarkdownV2(role)}*`, { parse_mode: 'MarkdownV2' });
-    ctx.answerCbQuery(`✅ Role set to ${role}`);
+    await ctx.editMessageText(
+      `🧠 *Role Updated Successfully*\\n\\n` +
+      `✅ Your new expert role: *${escapeMarkdownV2(role)}*\\n\\n` +
+      `🚀 AI responses will now be tailored to this expertise\\!`, 
+      { parse_mode: 'MarkdownV2' }
+    );
+    ctx.answerCbQuery(`🎯 Role set to ${role}`);
   }
   // Language selection
   else if (data.startsWith('lang_')) {
     const lang = data.replace('lang_', '');
     userLanguages[userId] = lang;
     const label = languages.find(l => l.code === lang)?.label || lang;
-    await ctx.editMessageText(`🌍 Language switched to: *${escapeMarkdownV2(label)}*`, { parse_mode: 'MarkdownV2' });
-    ctx.answerCbQuery(`🌐 Language set to ${lang}`);
+    await ctx.editMessageText(
+      `🌍 *Language Updated Successfully*\\n\\n` +
+      `✅ Your new language: ${escapeMarkdownV2(label)}\\n\\n` +
+      `🗣️ AI responses will now be in your selected language\\!`, 
+      { parse_mode: 'MarkdownV2' }
+    );
+    ctx.answerCbQuery(`🌐 Language set to ${label}`);
   }
   // Quick Buttons
   else if (data === 'show_role') {
-    await ctx.editMessageText('🧠 Choose a Brain Role:', {
+    await ctx.editMessageText('🧠 *Choose Your Expert Role*\\n\\n💡 Select a role to customize AI responses:', {
       reply_markup: {
         inline_keyboard: chunkArray(roles, 4).map(row =>
           row.map(r => ({ text: r, callback_data: `role_${r}` }))
         )
-      }
+      },
+      parse_mode: 'MarkdownV2'
     });
     ctx.answerCbQuery();
   }
   else if (data === 'show_lang') {
-    await ctx.editMessageText('🌍 Choose Language:', {
+    await ctx.editMessageText('🌍 *Choose Your Language*\\n\\n🗣️ Select your preferred language for responses:', {
       reply_markup: {
         inline_keyboard: chunkArray(languages, 3).map(row =>
           row.map(l => ({ text: l.label, callback_data: `lang_${l.code}` }))
         )
-      }
+      },
+      parse_mode: 'MarkdownV2'
     });
     ctx.answerCbQuery();
   }
@@ -670,17 +743,28 @@ bot.on('callback_query', async (ctx) => {
   else if (data === 'do_reset') {
     delete userRoles[userId];
     delete userLanguages[userId];
-    await ctx.editMessageText('🔄 Settings have been reset to default.');
-    ctx.answerCbQuery('Settings reset!');
+    await ctx.editMessageText(
+      '🔄 *Settings Reset Complete*\\n\\n' +
+      '✅ Role: Default \\(Brain Master\\)\\n' +
+      '✅ Language: Default \\(English\\)\\n\\n' +
+      '💡 Use /role and /lang to customize again\\!',
+      { parse_mode: 'MarkdownV2' }
+    );
+    ctx.answerCbQuery('✨ Settings reset successfully!');
   }
   else if (data === 'start_support') {
     supportState[userId] = true;
-    await ctx.answerCbQuery();
-    await ctx.reply('🆘 Please type your support query. I will send it to the admin.');
+    await ctx.answerCbQuery('🆘 Support mode activated!');
+    await ctx.editMessageText(
+      '🆘 *Support Request Mode*\\n\\n' +
+      '💬 Please type your support query\\. Your message will be sent directly to our admin team\\!\\n\\n' +
+      '⚡ *Response Time:* Typically within a few hours',
+      { parse_mode: 'MarkdownV2' }
+    );
   }
   else if (data === 'ping_cmd') {
-    await ctx.answerCbQuery();
-    await ctx.reply('🏓 Cool Shot AI is alive!');
+    await ctx.answerCbQuery('🏓 System online!');
+    await ctx.editMessageText('🏓 *Cool Shot AI Status: ONLINE*\\n\\n✅ All systems operational\\!', { parse_mode: 'MarkdownV2' });
   }
   else if (data === 'help_cmd') {
     await ctx.answerCbQuery();
@@ -692,30 +776,50 @@ bot.on('callback_query', async (ctx) => {
   // Admin Panel
   else if (data === 'show_admin') {
     if (!isAdmin(ctx.from.id)) {
-      await ctx.answerCbQuery('⛔️ Admins only.', { show_alert: true });
+      await ctx.answerCbQuery('⛔️ Access denied - Admins only!', { show_alert: true });
       return;
     }
-    await ctx.editMessageText('🛡️ Admin Panel', {
+    
+    const buttons = [
+      [{ text: '📊 View Stats', callback_data: 'admin_stats' }],
+      [{ text: '📢 Broadcast Message', callback_data: 'admin_broadcast' }],
+      [{ text: '🆘 Support Requests', callback_data: 'admin_support' }]
+    ];
+    
+    // Add user management for RayBen445
+    if (isRayBen(ctx.from.id)) {
+      buttons.push([{ text: '👥 Manage Users', callback_data: 'admin_users' }]);
+    }
+    
+    await ctx.editMessageText('🛡️ *Admin Control Panel*\\n\\n✨ Welcome to the administrative dashboard\\!', {
       reply_markup: {
-        inline_keyboard: [
-          [{ text: '📊 View Stats', callback_data: 'admin_stats' }],
-          [{ text: '📢 Broadcast', callback_data: 'admin_broadcast' }],
-          [{ text: '🆘 View Support Requests', callback_data: 'admin_support' }]
-        ]
-      }
+        inline_keyboard: buttons
+      },
+      parse_mode: 'MarkdownV2'
     });
-    ctx.answerCbQuery();
+    ctx.answerCbQuery('🛡️ Admin panel loaded');
   }
   // Admin Stats
   else if (data === 'admin_stats') {
     if (!isAdmin(ctx.from.id)) {
-      await ctx.answerCbQuery('⛔️ Admins only.', { show_alert: true });
+      await ctx.answerCbQuery('⛔️ Access denied - Admins only!', { show_alert: true });
       return;
     }
     const totalUsers = Object.keys(users).length;
     const adminCount = getAdminUsers().length;
-    await ctx.editMessageText(`📊 Stats:\nTotal Users: ${totalUsers}\nAdmins: ${adminCount}\nRoles set: ${Object.keys(userRoles).length}\nLanguages set: ${Object.keys(userLanguages).length}`);
-    ctx.answerCbQuery();
+    const rolesSet = Object.keys(userRoles).length;
+    const langsSet = Object.keys(userLanguages).length;
+    
+    await ctx.editMessageText(
+      `📊 *System Statistics*\\n\\n` +
+      `👥 **Total Users:** ${totalUsers}\\n` +
+      `🛡️ **Administrators:** ${adminCount}\\n` +
+      `🧠 **Custom Roles Set:** ${rolesSet}\\n` +
+      `🌍 **Languages Set:** ${langsSet}\\n\\n` +
+      `✨ *System Status:* All operational`,
+      { parse_mode: 'MarkdownV2' }
+    );
+    ctx.answerCbQuery('📊 Stats updated');
   }
   // Admin Users List (RayBen only)
   else if (data === 'admin_users') {
@@ -759,20 +863,31 @@ bot.on('callback_query', async (ctx) => {
   // Admin Broadcast
   else if (data === 'admin_broadcast') {
     if (!isAdmin(ctx.from.id)) {
-      await ctx.answerCbQuery('⛔️ Admins only.', { show_alert: true });
+      await ctx.answerCbQuery('⛔️ Access denied - Admins only!', { show_alert: true });
       return;
     }
-    await ctx.editMessageText('📢 Send your broadcast message as /broadcast <message>');
-    ctx.answerCbQuery();
+    await ctx.editMessageText(
+      '📢 *Broadcast System*\\n\\n' +
+      '💡 To send a message to all users:\\n' +
+      '`/broadcast <your message>`\\n\\n' +
+      '📤 Your message will be delivered to all registered users\\.',
+      { parse_mode: 'MarkdownV2' }
+    );
+    ctx.answerCbQuery('📢 Broadcast instructions shown');
   }
-  // Admin Support Requests (for demo, just info)
+  // Admin Support Requests
   else if (data === 'admin_support') {
     if (!isAdmin(ctx.from.id)) {
-      await ctx.answerCbQuery('⛔️ Admins only.', { show_alert: true });
+      await ctx.answerCbQuery('⛔️ Access denied - Admins only!', { show_alert: true });
       return;
     }
-    await ctx.editMessageText('🆘 Support requests are forwarded here as private messages. Check your Telegram DM.');
-    ctx.answerCbQuery();
+    await ctx.editMessageText(
+      '🆘 *Support Request System*\\n\\n' +
+      '💬 Support requests are forwarded directly to your Telegram DMs\\n\\n' +
+      '📨 Check your private messages for incoming support queries\\.',
+      { parse_mode: 'MarkdownV2' }
+    );
+    ctx.answerCbQuery('🆘 Support system info shown');
   }
 });
 
