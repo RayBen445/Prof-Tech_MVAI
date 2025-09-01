@@ -46,6 +46,10 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs-extra');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { Translate } = require('@google-cloud/translate').v2;
+const speech = require('@google-cloud/speech');
+const textToSpeech = require('@google-cloud/text-to-speech');
+const ffmpeg = require('ffmpeg-static');
 
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 const app = express();
@@ -347,6 +351,45 @@ try {
   console.log('⚠️ Google Gemini API not available:', error.message);
 }
 
+// Google Translate API Configuration
+let googleTranslate = null;
+try {
+  if (process.env.GOOGLE_API_KEY) {
+    googleTranslate = new Translate({
+      key: process.env.GOOGLE_API_KEY
+    });
+    console.log('🌍 Google Translate API initialized');
+  }
+} catch (error) {
+  console.log('⚠️ Google Translate API not available:', error.message);
+}
+
+// Google Speech-to-Text API Configuration
+let speechClient = null;
+try {
+  if (process.env.GOOGLE_API_KEY) {
+    speechClient = new speech.SpeechClient({
+      apiKey: process.env.GOOGLE_API_KEY
+    });
+    console.log('🎤 Google Speech-to-Text API initialized');
+  }
+} catch (error) {
+  console.log('⚠️ Google Speech-to-Text API not available:', error.message);
+}
+
+// Google Text-to-Speech API Configuration
+let ttsClient = null;
+try {
+  if (process.env.GOOGLE_API_KEY) {
+    ttsClient = new textToSpeech.TextToSpeechClient({
+      apiKey: process.env.GOOGLE_API_KEY
+    });
+    console.log('🔊 Google Text-to-Speech API initialized');
+  }
+} catch (error) {
+  console.log('⚠️ Google Text-to-Speech API not available:', error.message);
+}
+
 // Google Gemini API fallback function
 async function callGeminiAPI(prompt, role, lang) {
   if (!geminiAI) {
@@ -376,6 +419,7 @@ User Query: ${prompt}`;
           .replace(/I was (created|developed|made|built) by Google/gi, "I was created by Cool Shot Systems")
           .replace(/Google AI|Google's AI|Gemini AI/gi, "Cool Shot AI")
           .replace(/I'm here to help/gi, "I'm Cool Shot AI, here to help")
+          .replace(/\*\*(.+?)\*\*/g, '*$1*')
           .trim()
       };
     }
@@ -388,6 +432,331 @@ User Query: ${prompt}`;
 
 // ========== Support Query Flow State ==========
 let supportState = {};
+
+// ========== Voice Processing Functions ==========
+
+// Convert speech to text using Google Speech-to-Text
+async function speechToText(audioBuffer, languageCode = 'en-US') {
+  if (!speechClient) {
+    throw new Error('Google Speech-to-Text API not available');
+  }
+  
+  const request = {
+    audio: {
+      content: audioBuffer.toString('base64'),
+    },
+    config: {
+      encoding: 'OGG_OPUS',
+      sampleRateHertz: 48000,
+      languageCode: languageCode,
+      alternativeLanguageCodes: ['en-US', 'es-ES', 'fr-FR', 'de-DE', 'it-IT', 'pt-BR'],
+      enableAutomaticPunctuation: true,
+    },
+  };
+
+  try {
+    const [response] = await speechClient.recognize(request);
+    const transcription = response.results
+      ?.map(result => result.alternatives?.[0]?.transcript)
+      .join('\n') || '';
+    
+    if (!transcription.trim()) {
+      throw new Error('Could not transcribe audio');
+    }
+    
+    return transcription.trim();
+  } catch (error) {
+    console.error('❌ Speech-to-Text Error:', error.message);
+    throw error;
+  }
+}
+
+// Convert text to speech using Google Text-to-Speech
+async function synthesizeSpeech(text, languageCode = 'en-US', voiceName = null) {
+  if (!ttsClient) {
+    throw new Error('Google Text-to-Speech API not available');
+  }
+  
+  // Determine appropriate voice based on language
+  const voiceMap = {
+    'en-US': { name: 'en-US-Neural2-F', gender: 'FEMALE' },
+    'es-ES': { name: 'es-ES-Neural2-A', gender: 'FEMALE' },
+    'fr-FR': { name: 'fr-FR-Neural2-A', gender: 'FEMALE' },
+    'de-DE': { name: 'de-DE-Neural2-A', gender: 'FEMALE' },
+    'it-IT': { name: 'it-IT-Neural2-A', gender: 'FEMALE' },
+    'pt-BR': { name: 'pt-BR-Neural2-A', gender: 'FEMALE' }
+  };
+  
+  const voice = voiceMap[languageCode] || voiceMap['en-US'];
+  
+  const request = {
+    input: { text: text },
+    voice: {
+      languageCode: languageCode,
+      name: voiceName || voice.name,
+      ssmlGender: voice.gender,
+    },
+    audioConfig: {
+      audioEncoding: 'OGG_OPUS',
+      speakingRate: 1.0,
+      pitch: 0.0,
+    },
+  };
+
+  try {
+    const [response] = await ttsClient.synthesizeSpeech(request);
+    return response.audioContent;
+  } catch (error) {
+    console.error('❌ Text-to-Speech Error:', error.message);
+    throw error;
+  }
+}
+
+// Download audio file from Telegram
+async function downloadAudioFile(ctx, fileId) {
+  try {
+    const file = await ctx.telegram.getFile(fileId);
+    const url = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
+    
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    return Buffer.from(response.data);
+  } catch (error) {
+    console.error('❌ Audio Download Error:', error.message);
+    throw error;
+  }
+}
+
+// Process voice command
+async function processVoiceCommand(ctx, transcript) {
+  console.log(`🎤 Voice transcript: "${transcript}"`);
+  
+  // Create a synthetic text message context for processing
+  const syntheticCtx = {
+    ...ctx,
+    message: {
+      ...ctx.message,
+      text: transcript
+    }
+  };
+  
+  // Check if transcript contains a command
+  if (transcript.toLowerCase().includes('translate') && transcript.includes(' ')) {
+    // Handle voice translation command
+    const matches = transcript.match(/translate\s+(.+?)\s+(.+)/i);
+    if (matches && matches.length >= 3) {
+      const langCode = matches[1].toLowerCase();
+      const textToTranslate = matches[2];
+      
+      syntheticCtx.message.text = `/translate ${langCode} ${textToTranslate}`;
+      return await handleTranslateCommand(syntheticCtx);
+    }
+  }
+  
+  // Handle other voice commands
+  const lowerTranscript = transcript.toLowerCase();
+  if (lowerTranscript.includes('help')) {
+    syntheticCtx.message.text = '/help';
+  } else if (lowerTranscript.includes('about')) {
+    syntheticCtx.message.text = '/about';  
+  } else if (lowerTranscript.includes('status')) {
+    syntheticCtx.message.text = '/ping';
+  } else if (lowerTranscript.includes('games')) {
+    syntheticCtx.message.text = '/games';
+  } else {
+    // Process as regular AI query
+    return await processAIQuery(syntheticCtx, transcript);
+  }
+  
+  // Process the command
+  return await processCommand(syntheticCtx);
+}
+
+// Send voice response
+async function sendVoiceResponse(ctx, text, languageCode = 'en-US') {
+  try {
+    // Generate audio response
+    const audioBuffer = await synthesizeSpeech(text, languageCode);
+    
+    // Send both text and voice response
+    await ctx.reply(`🔊 *Voice Response:*\n\n${escapeMarkdownV2(text)}`, { parse_mode: 'MarkdownV2' });
+    
+    // Send voice message
+    await ctx.replyWithVoice({ source: audioBuffer }, { 
+      caption: '🎤 Cool Shot AI Voice Response' 
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Voice Response Error:', error.message);
+    // Fallback to text-only response
+    await ctx.reply(`💬 *Text Response:*\n\n${escapeMarkdownV2(text)}`, { parse_mode: 'MarkdownV2' });
+    return false;
+  }
+}
+
+// Helper function to process AI queries (extracted from main text handler)
+async function processAIQuery(ctx, queryText) {
+  const role = userSettings[ctx.from.id]?.role || 'Assistant';
+  const lang = userSettings[ctx.from.id]?.language || 'en';
+  
+  // Try primary APIs first
+  for (const apiUrl of aiAPIs) {
+    try {
+      const response = await axios.post(apiUrl, {
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: queryText }]
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+      });
+
+      if (response.data?.choices?.[0]?.message?.content) {
+        let aiResponse = response.data.choices[0].message.content;
+        
+        // Apply comprehensive brand protection
+        aiResponse = aiResponse
+          .replace(/ChatGPT|GPT-4|GPT-3.5|OpenAI|Assistant|GPT|Copilot/gi, "Cool Shot AI")
+          .replace(/I'm an AI|I am an AI|I'm a large language model/gi, "I'm Cool Shot AI")
+          .replace(/developed by OpenAI|created by OpenAI|made by OpenAI/gi, "developed by Cool Shot Systems")
+          .replace(/As an AI assistant/gi, "As Cool Shot AI")
+          .replace(/I'm here to help/gi, "I'm Cool Shot AI, here to help")
+          .replace(/\*\*(.+?)\*\*/g, '*$1*');
+        
+        return aiResponse.trim();
+      }
+    } catch (err) {
+      console.error('❌ AI Request Failed:', err.message);
+      continue;
+    }
+  }
+  
+  // Fallback to Gemini if available
+  if (geminiAI) {
+    try {
+      const geminiResponse = await callGeminiAPI(queryText, role, lang);
+      if (geminiResponse?.result) {
+        return geminiResponse.result;
+      }
+    } catch (err) {
+      console.error('❌ Google Gemini API Failed:', err.message);
+    }
+  }
+  
+  // Final fallback message
+  return "I'm temporarily experiencing high traffic. Please try again in a moment, or use /ping to check my status.";
+}
+
+// Helper function to handle translate commands
+async function handleTranslateCommand(ctx) {
+  const args = ctx.message.text.split(' ').slice(1); // Remove /translate
+  
+  if (args.length < 2) {
+    return `❌ *Translation Error*\n\nPlease provide both language code and text to translate.\n\n*Usage:* \`/translate es Hello world\`\n*Example:* \`/translate fr Good morning\``;
+  }
+  
+  const targetLang = args[0].toLowerCase();
+  const textToTranslate = args.slice(1).join(' ');
+  
+  try {
+    // Try Google Translate API first
+    if (googleTranslate) {
+      const [translation] = await googleTranslate.translate(textToTranslate, targetLang);
+      return `🌍 *Translation Result*\n\n*Original:* ${textToTranslate}\n*Translated (${targetLang}):* ${translation}`;
+    }
+    
+    // Fallback to other translation methods...
+    throw new Error('No translation service available');
+    
+  } catch (error) {
+    return `❌ *Translation Failed*\n\nSorry, I couldn't translate your text. Please check the language code and try again.`;
+  }
+}
+
+// Helper function to process commands (extracted for voice command support) 
+async function processCommand(ctx) {
+  const commandText = ctx.message.text;
+  
+  if (commandText === '/help') {
+    return `🚀 *Cool Shot AI - Command Center*\n\n*🤖 AI Interaction:*\n• Just type any question or request\n• /role - Choose your AI assistant mode\n• /lang - Set your preferred language\n• /reset - Reset your settings\n\n*🛠️ Quick Tools:*\n• /buttons - Quick action menu\n• /games - Fun activities & games\n• /tools - Text processing utilities\n• /translate <lang_code> <text> - Translate text\n\n*📊 Information:*\n• /about - About Cool Shot AI\n• /ping - Check bot status\n• /stats - Usage statistics\n\n*🆘 Support:*\n• /support <message> - Contact admins\n\n*🎤 Voice Features:*\n• Send voice messages for hands-free interaction\n• Get voice responses back\n• All text commands work with voice too`;
+  } else if (commandText === '/about') {
+    return `🚀 *Cool Shot AI*\n\n*Developed by:* Cool Shot Systems\n*Version:* 2.0 Enhanced\n\n*Features:*\n• Multi-model AI responses\n• Voice interaction support\n• Smart translation services\n• Interactive games & tools\n• Admin management system\n\n*Capabilities:*\n✅ Text & Voice conversations\n✅ Real-time translation\n✅ Multiple AI personalities\n✅ Advanced text processing\n✅ Multi-language support\n\n*Contact:* @RayBen445\n\n*🎤 Now with voice capabilities!*`;
+  } else if (commandText === '/ping') {
+    return `🏃‍♂️ *Cool Shot AI Status*\n\n✅ *System:* Online & Ready\n🤖 *AI Models:* ${aiAPIs.length} Active\n🌍 *Translation:* Available\n🎤 *Voice Features:* ${speechClient && ttsClient ? 'Enabled' : 'Disabled'}\n⚡ *Response Time:* Fast\n\n*Ready to assist you!*`;
+  }
+  
+  // For other commands, process as AI query
+  return await processAIQuery(ctx, commandText);
+}
+
+// ========== Voice Message Handler ==========
+bot.on('voice', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackMessage(ctx.from.id);
+  
+  try {
+    console.log('🎤 Voice message received from', ctx.from.first_name || 'Unknown');
+    
+    // Check if speech services are available
+    if (!speechClient) {
+      return ctx.reply('❌ *Voice Recognition Unavailable*\n\nSorry, voice features are not currently configured. Please use text commands instead.', 
+        { parse_mode: 'MarkdownV2' });
+    }
+    
+    // Show processing message
+    const processingMsg = await ctx.reply('🎤 *Processing your voice message...*\n\n⏳ Converting speech to text...', 
+      { parse_mode: 'MarkdownV2' });
+    
+    // Download the voice file
+    const audioBuffer = await downloadAudioFile(ctx, ctx.message.voice.file_id);
+    
+    // Convert speech to text
+    const userLanguage = userSettings[ctx.from.id]?.language || 'en-US';
+    const transcript = await speechToText(audioBuffer, userLanguage);
+    
+    // Update processing message
+    await ctx.telegram.editMessageText(
+      ctx.chat.id, 
+      processingMsg.message_id, 
+      null,
+      `🎤 *Voice Message Processed*\n\n📝 *You said:* "${transcript}"\n\n🤖 *Processing response...*`,
+      { parse_mode: 'MarkdownV2' }
+    );
+    
+    // Process the voice command
+    const responseText = await processVoiceCommand(ctx, transcript);
+    
+    // Delete processing message
+    await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+    
+    // Send voice response
+    await sendVoiceResponse(ctx, responseText, userLanguage);
+    
+    console.log(`✅ Voice message processed successfully for ${ctx.from.first_name || 'Unknown'}`);
+    
+  } catch (error) {
+    console.error('❌ Voice Message Error:', error.message);
+    
+    // Try to delete processing message if it exists
+    try {
+      if (processingMsg) {
+        await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      }
+    } catch (deleteError) {
+      // Ignore deletion errors
+    }
+    
+    await ctx.reply(
+      `❌ *Voice Processing Failed*\n\n` +
+      `Sorry, I couldn't process your voice message\\. ` +
+      `This might be due to:\n\n` +
+      `• Audio quality issues\n` +
+      `• Unsupported language\n` +
+      `• Service temporary unavailability\n\n` +
+      `💡 *Try:* Send a text message instead`,
+      { parse_mode: 'MarkdownV2' }
+    );
+  }
+});
 
 // ========== Main Text Handler ==========
 bot.on('text', async (ctx, next) => {
@@ -406,9 +775,9 @@ bot.on('text', async (ctx, next) => {
         adminId,
         escapeMarkdownV2(
           `📩 *New Support Request*\n\n` +
-          `👤 **From:** ${userName} (${username})\n` +
-          `🆔 **User ID:** \`${ctx.from.id}\`\n\n` +
-          `💬 **Message:**\n${ctx.message.text}`
+          `👤 *From:* ${userName} (${username})\n` +
+          `🆔 *User ID:* \`${ctx.from.id}\`\n\n` +
+          `💬 *Message:*\n${ctx.message.text}`
         ),
         { parse_mode: 'MarkdownV2' }
       );
@@ -433,9 +802,9 @@ bot.on('text', async (ctx, next) => {
         adminId, 
         escapeMarkdownV2(
           `📩 *Support Request*\n\n` +
-          `👤 **From:** ${userName} (${username})\n` +
-          `🆔 **User ID:** \`${ctx.from.id}\`\n\n` +
-          `💬 **Message:**\n${supportText}`
+          `👤 *From:* ${userName} (${username})\n` +
+          `🆔 *User ID:* \`${ctx.from.id}\`\n\n` +
+          `💬 *Message:*\n${supportText}`
         ),
         { parse_mode: 'MarkdownV2' }
       );
@@ -461,8 +830,8 @@ bot.on('text', async (ctx, next) => {
         userId, 
         escapeMarkdownV2(
           `📢 *Admin Broadcast*\n\n` +
-          `👤 **From:** ${adminName}\n\n` +
-          `💬 **Message:**\n${msg}`
+          `👤 *From:* ${adminName}\n\n` +
+          `💬 *Message:*\n${msg}`
         ),
         { parse_mode: 'MarkdownV2' }
       );
@@ -540,6 +909,7 @@ bot.on('text', async (ctx, next) => {
             .replace(/I was (created|developed|made|built) by Google/gi, "I was created by Cool Shot Systems")
             .replace(/Google AI|Google's AI|Gemini AI/gi, "Cool Shot AI")
             .replace(/[""]/g, '"')
+            .replace(/\*\*(.+?)\*\*/g, '*$1*')
         );
         
         // Beautiful response formatting
@@ -610,7 +980,43 @@ bot.command('help', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       "🆘 *Cool Shot AI Help*\n\n" +
-      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /translate <lang_code> <text> to translate text\n• /voice for voice features info\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+    )
+  );
+});
+
+// Voice Features Command
+bot.command('voice', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('voice', ctx.from.id);
+  
+  const voiceStatus = speechClient && ttsClient ? '✅ Enabled' : '❌ Disabled';
+  
+  ctx.replyWithMarkdownV2(
+    escapeMarkdownV2(
+      `🎤 *Cool Shot AI Voice Features*\n\n` +
+      `*Status:* ${voiceStatus}\n\n` +
+      `*🎙️ Voice Input:*\n` +
+      `• Send voice messages to interact hands-free\n` +
+      `• All text commands work with voice\n` +
+      `• Supports multiple languages\n\n` +
+      `*🔊 Voice Output:*\n` +
+      `• Get spoken responses back\n` +
+      `• Text + voice for accessibility\n` +
+      `• Natural-sounding AI voice\n\n` +
+      `*Voice Commands Examples:*\n` +
+      `• "Help me with..." - Get assistance\n` +
+      `• "Translate Spanish hello world" - Translation\n` +
+      `• "Tell me about..." - Ask questions\n` +
+      `• "Status" - Check bot status\n\n` +
+      `*💡 How to use:*\n` +
+      `1. Tap & hold the microphone button\n` +
+      `2. Speak your command clearly\n` +
+      `3. Release to send\n` +
+      `4. Get text + voice response!\n\n` +
+      `${speechClient && ttsClient ? 
+        `*✨ Voice features are ready! Try sending a voice message now.*` :
+        `*⚠️ Voice features require Google Cloud API setup.*`}`
     )
   );
 });
@@ -745,7 +1151,7 @@ bot.command('apistatus', async (ctx) => {
   let message = `🔧 *AI API Status Dashboard*\\n\\n`;
   
   // Check primary APIs
-  message += `🎯 **Primary APIs \\(${aiAPIs.length}\\):**\\n`;
+  message += `🎯 *Primary APIs \\(${aiAPIs.length}\\):*\\n\\n`;
   for (let i = 0; i < aiAPIs.length; i++) {
     const url = aiAPIs[i];
     const apiName = url.includes('gpt4o') ? 'GPT-4o' : 
@@ -753,11 +1159,11 @@ bot.command('apistatus', async (ctx) => {
                    url.includes('meta-llama') ? 'Meta Llama' :
                    url.includes('copilot') ? 'Copilot' :
                    `API ${i + 1}`;
-    message += `${i + 1}\\. ${escapeMarkdownV2(apiName)} \\- GiftedTech\\n`;
+    message += `   ${i + 1}\\. ${escapeMarkdownV2(apiName)} \\- GiftedTech\\n`;
   }
   
   // Check Google Gemini status
-  message += `\\n🤖 **Fallback API:**\\n`;
+  message += `\\n🤖 *Fallback API:*\\n`;
   if (geminiAI) {
     message += `✅ Google Gemini \\- *Configured & Ready*\\n`;
   } else {
@@ -765,12 +1171,31 @@ bot.command('apistatus', async (ctx) => {
     message += `💡 Set GOOGLE\\_API\\_KEY environment variable to enable\\n`;
   }
   
-  message += `\\n📊 **API Flow:**\\n`;
+  // Check Google Translation status
+  message += `\\n🌍 *Translation Service:*\\n`;
+  if (googleTranslate) {
+    message += `   ✅ Google Translate \\- *Active*\\n`;
+  } else {
+    message += `   ⚠️ Google Translate \\- *Not Configured*\\n`;
+  }
+  
+  // Check Voice Services status
+  message += `\\n🎤 *Voice Services:*\\n`;
+  if (speechClient && ttsClient) {
+    message += `   ✅ Speech\\-to\\-Text \\- *Active*\\n`;
+    message += `   ✅ Text\\-to\\-Speech \\- *Active*\\n`;
+    message += `   🎙️ Voice Commands \\- *Enabled*\\n`;
+  } else {
+    message += `   ⚠️ Voice Services \\- *Not Configured*\\n`;
+    message += `   💡 Google Cloud APIs required for voice features\\n`;
+  }
+  
+  message += `\\n📊 *API Flow:*\\n`;
   message += `1\\. Try all ${aiAPIs.length} primary APIs sequentially\\n`;
   message += `2\\. If all fail, use Google Gemini fallback\\n`;
   message += `3\\. If still no response, show enhanced error message\\n\\n`;
   
-  message += `🛡️ **Brand Protection:**\\n`;
+  message += `🛡️ *Brand Protection:*\\n`;
   message += `• All responses maintain Cool Shot AI identity\\n`;
   message += `• Comprehensive text replacement ensures consistency\\n`;
   message += `• No external provider names leak through\\n\\n`;
@@ -794,7 +1219,7 @@ bot.command('users', async (ctx) => {
   const adminUsers = userList.filter(user => user.isAdmin);
   
   let message = `👥 *User Database* (${totalUsers} users)\n\n`;
-  message += `🛡️ **Admins (${adminUsers.length}):**\n`;
+  message += `🛡️ *Admins (${adminUsers.length}):*\n`;
   
   adminUsers.forEach((user, index) => {
     const name = user.firstName || 'Unknown';
@@ -803,7 +1228,7 @@ bot.command('users', async (ctx) => {
     message += `${index + 1}. ${name} (${username}) - ID: \`${user.id}\`${isPrimary}\n`;
   });
   
-  message += `\n👤 **Regular Users (${totalUsers - adminUsers.length}):**\n`;
+  message += `\n👤 *Regular Users (${totalUsers - adminUsers.length}):*\n`;
   const regularUsers = userList.filter(user => !user.isAdmin).slice(0, 20); // Limit to first 20
   
   regularUsers.forEach((user, index) => {
@@ -942,6 +1367,7 @@ bot.command('*', async (ctx) => {
       `• /buttons - Quick action menu\n` +
       `• /games - Fun activities\n` +
       `• /tools - Text utilities\n` +
+      `• /translate - Translate text to any language\n` +
       `• /start - Welcome message\n\n` +
       `💡 *Tip:* Use /help to see the complete command list!`
     )
@@ -988,13 +1414,13 @@ bot.command('analytics', async (ctx) => {
 
   ctx.replyWithMarkdownV2(
     `📊 *Bot Analytics Dashboard*\\n\\n` +
-    `⏰ **Uptime:** ${uptime} days\\n` +
-    `👥 **Total Users:** ${totalUsers}\\n` +
-    `🎯 **Active Today:** ${activeToday}\\n` +
-    `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-    `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-    `🏆 **Top Commands:**\\n${topCommands || 'No data'}\\n\\n` +
-    `👑 **Most Active Users:**\\n${topUsers || 'No data'}\\n\\n` +
+    `⏰ *Uptime:* ${uptime} days\\n` +
+    `👥 *Total Users:* ${totalUsers}\\n` +
+    `🎯 *Active Today:* ${activeToday}\\n` +
+    `💬 *Total Messages:* ${analytics.totalMessages}\\n` +
+    `⚡ *Total Commands:* ${analytics.totalCommands}\\n\\n` +
+    `🏆 *Top Commands:*\\n${topCommands || 'No data'}\\n\\n` +
+    `👑 *Most Active Users:*\\n${topUsers || 'No data'}\\n\\n` +
     `✨ _Analytics powered by Cool Shot Systems_`
   );
 });
@@ -1025,18 +1451,18 @@ bot.command('activity', async (ctx) => {
     
     ctx.replyWithMarkdownV2(
       `👤 *User Activity Report*\\n\\n` +
-      `📛 **Name:** ${escapeMarkdownV2(user.firstName || 'Unknown')}\\n` +
-      `🆔 **ID:** \`${user.id}\`\\n` +
-      `👤 **Username:** ${user.username ? `@${escapeMarkdownV2(user.username)}` : 'No username'}\\n` +
-      `🛡️ **Admin:** ${user.isAdmin ? '✅ Yes' : '❌ No'}\\n\\n` +
-      `📊 **Activity Stats:**\\n` +
+      `📛 *Name:* ${escapeMarkdownV2(user.firstName || 'Unknown')}\\n` +
+      `🆔 *ID:* \`${user.id}\`\\n` +
+      `👤 *Username:* ${user.username ? `@${escapeMarkdownV2(user.username)}` : 'No username'}\\n` +
+      `🛡️ *Admin:* ${user.isAdmin ? '✅ Yes' : '❌ No'}\\n\\n` +
+      `📊 *Activity Stats:*\\n` +
       `💬 Messages: ${messages}\\n` +
       `⚡ Commands: ${commands}\\n` +
       `🎯 Total: ${totalActivity}\\n\\n` +
-      `📅 **Dates:**\\n` +
+      `📅 *Dates:*\\n` +
       `🆕 First Seen: ${escapeMarkdownV2(new Date(user.firstSeen).toLocaleDateString())}\\n` +
       `👁️ Last Seen: ${escapeMarkdownV2(new Date(user.lastSeen).toLocaleDateString())}\\n\\n` +
-      `📝 **Notes:** ${escapeMarkdownV2(user.notes || 'No notes')}`
+      `📝 *Notes:* ${escapeMarkdownV2(user.notes || 'No notes')}`
     );
   } else {
     // Show general activity overview
@@ -1050,7 +1476,7 @@ bot.command('activity', async (ctx) => {
       .slice(0, 10);
     
     let message = `📈 *Recent User Activity*\\n\\n`;
-    message += `🎯 **Active in last 3 days:** ${recentUsers.length}\\n\\n`;
+    message += `🎯 *Active in last 3 days:* ${recentUsers.length}\\n\\n`;
     
     recentUsers.forEach((user, i) => {
       const name = user.firstName || 'Unknown';
@@ -1101,15 +1527,17 @@ bot.command('tools', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       '🛠️ *Text Utilities Toolkit*\n\n' +
-      '📝 **Available Tools:**\n' +
+      '📝 *Available Tools:*\n' +
       '• `/count <text>` - Count words and characters\n' +
       '• `/reverse <text>` - Reverse text\n' +
       '• `/upper <text>` - Convert to UPPERCASE\n' +
       '• `/lower <text>` - Convert to lowercase\n' +
       '• `/title <text>` - Convert To Title Case\n' +
       '• `/encode <text>` - Base64 encode text\n' +
-      '• `/decode <text>` - Base64 decode text\n\n' +
-      '💡 *Example:* `/count Hello World` will show character and word count'
+      '• `/decode <text>` - Base64 decode text\n' +
+      '• `/translate <lang> <text>` - Translate text to any language\n\n' +
+      '💡 *Example:* `/count Hello World` will show character and word count\n' +
+      '💡 *Example:* `/translate es Hello World` translates to Spanish'
     )
   );
 });
@@ -1130,8 +1558,8 @@ bot.command('count', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `📊 *Text Analysis Results*\n\n` +
-      `📝 **Text:** "${text}"\n\n` +
-      `🔢 **Statistics:**\n` +
+      `📝 *Text:* "${text}"\n\n` +
+      `🔢 *Statistics:*\n` +
       `• Words: ${words}\n` +
       `• Characters: ${chars}\n` +
       `• Characters (no spaces): ${charsNoSpaces}\n\n` +
@@ -1153,8 +1581,8 @@ bot.command('reverse', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🔄 *Text Reversal*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `🔄 **Reversed:** "${reversed}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `🔄 *Reversed:* "${reversed}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -1172,8 +1600,8 @@ bot.command('upper', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🔤 *UPPERCASE CONVERSION*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `🔤 **UPPERCASE:** "${text.toUpperCase()}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `🔤 *UPPERCASE:* "${text.toUpperCase()}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -1191,8 +1619,8 @@ bot.command('lower', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🔡 *lowercase conversion*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `🔡 **lowercase:** "${text.toLowerCase()}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `🔡 *lowercase:* "${text.toLowerCase()}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -1214,8 +1642,8 @@ bot.command('title', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `📄 *Title Case Conversion*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `📄 **Title Case:** "${titleCase}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `📄 *Title Case:* "${titleCase}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -1235,8 +1663,8 @@ bot.command('encode', async (ctx) => {
     ctx.replyWithMarkdownV2(
       escapeMarkdownV2(
         `🔐 *Base64 Encoding*\n\n` +
-        `📝 **Original:** "${text}"\n` +
-        `🔐 **Encoded:** \`${encoded}\`\n\n` +
+        `📝 *Original:* "${text}"\n` +
+        `🔐 *Encoded:* \`${encoded}\`\n\n` +
         `✨ _Powered by Cool Shot Systems_`
       )
     );
@@ -1259,8 +1687,8 @@ bot.command('decode', async (ctx) => {
     ctx.replyWithMarkdownV2(
       escapeMarkdownV2(
         `🔓 *Base64 Decoding*\n\n` +
-        `🔐 **Encoded:** \`${text}\`\n` +
-        `🔓 **Decoded:** "${decoded}"\n\n` +
+        `🔐 *Encoded:* \`${text}\`\n` +
+        `🔓 *Decoded:* "${decoded}"\n\n` +
         `✨ _Powered by Cool Shot Systems_`
       )
     );
@@ -1277,7 +1705,7 @@ bot.command('games', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       '🎮 *Cool Shot Games & Fun*\n\n' +
-      '🎲 **Available Games:**\n' +
+      '🎲 *Available Games:*\n' +
       '• `/dice` - Roll a dice (1-6)\n' +
       '• `/coin` - Flip a coin\n' +
       '• `/number` - Random number (1-100)\n' +
@@ -1300,7 +1728,7 @@ bot.command('dice', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🎲 *Dice Roll*\n\n` +
-      `${diceEmoji} **You rolled:** ${roll}\n\n` +
+      `${diceEmoji} *You rolled:* ${roll}\n\n` +
       `🎯 _Good luck!_`
     )
   );
@@ -1315,7 +1743,7 @@ bot.command('coin', async (ctx) => {
   
   ctx.replyWithMarkdownV2(
     `🪙 *Coin Flip*\\n\\n` +
-    `${emoji} **Result:** ${result}\\n\\n` +
+    `${emoji} *Result:* ${result}\\n\\n` +
     `🎯 _Fate has decided\\!_`
   );
 });
@@ -1328,8 +1756,8 @@ bot.command('number', async (ctx) => {
   
   ctx.replyWithMarkdownV2(
     `🔢 *Random Number*\\n\\n` +
-    `🎯 **Your number:** ${number}\\n` +
-    `📊 **Range:** 1 \\- 100\\n\\n` +
+    `🎯 *Your number:* ${number}\\n` +
+    `📊 *Range:* 1 \\- 100\\n\\n` +
     `✨ _Generated by Cool Shot Systems_`
   );
 });
@@ -1357,8 +1785,8 @@ bot.command('8ball', async (ctx) => {
   
   ctx.replyWithMarkdownV2(
     `🎱 *Magic 8\\-Ball*\\n\\n` +
-    `❓ **Question:** "${escapeMarkdownV2(question)}"\\n` +
-    `🔮 **Answer:** *${escapeMarkdownV2(answer)}*\\n\\n` +
+    `❓ *Question:* "${escapeMarkdownV2(question)}"\\n` +
+    `🔮 *Answer:* *${escapeMarkdownV2(answer)}*\\n\\n` +
     `✨ _The magic 8\\-ball has spoken\\!_`
   );
 });
@@ -1465,13 +1893,13 @@ bot.command('stats', async (ctx) => {
   
   ctx.replyWithMarkdownV2(
     `📊 *Cool Shot AI Statistics*\\n\\n` +
-    `⏰ **Bot Uptime:** ${uptimeDays}d ${uptimeHours}h\\n` +
-    `👥 **Total Users:** ${totalUsers}\\n` +
-    `🛡️ **Administrators:** ${totalAdmins}\\n` +
-    `🎯 **Active Today:** ${activeToday}\\n` +
-    `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-    `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-    `👤 **Your Settings:**\\n` +
+    `⏰ *Bot Uptime:* ${uptimeDays}d ${uptimeHours}h\\n` +
+    `👥 *Total Users:* ${totalUsers}\\n` +
+    `🛡️ *Administrators:* ${totalAdmins}\\n` +
+    `🎯 *Active Today:* ${activeToday}\\n` +
+    `💬 *Total Messages:* ${analytics.totalMessages}\\n` +
+    `⚡ *Total Commands:* ${analytics.totalCommands}\\n\\n` +
+    `👤 *Your Settings:*\\n` +
     `🧠 Role: ${escapeMarkdownV2(userRole)}\\n` +
     `🌐 Language: ${escapeMarkdownV2(langLabel)}\\n\\n` +
     `✨ _Powered by Cool Shot Systems_`
@@ -1492,8 +1920,8 @@ bot.command('commands', async (ctx) => {
     .slice(0, 15);
   
   let message = `⚡ *Command Usage Statistics*\\n\\n`;
-  message += `📊 **Total Commands Executed:** ${analytics.totalCommands}\\n\\n`;
-  message += `🏆 **Top Commands:**\\n`;
+  message += `📊 *Total Commands Executed:* ${analytics.totalCommands}\\n\\n`;
+  message += `🏆 *Top Commands:*\\n`;
   
   sortedCommands.forEach(([command, count], index) => {
     const percentage = ((count / analytics.totalCommands) * 100).toFixed(1);
@@ -1546,6 +1974,122 @@ bot.command('topusers', async (ctx) => {
   message += `✨ _Rankings by Cool Shot Systems_`;
   
   ctx.replyWithMarkdownV2(message);
+});
+
+// Translation Command
+bot.command('translate', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('translate', ctx.from.id);
+  
+  const args = ctx.message.text.split(' ').slice(1); // Remove /translate
+  
+  if (args.length < 2) {
+    return ctx.replyWithMarkdownV2(
+      escapeMarkdownV2(
+        '🌍 *Translation Command*\n\n' +
+        '📝 *Usage:* `/translate [language_code] [text_to_translate]`\n\n' +
+        '🔤 *Available Languages:*\n' +
+        languages.map(l => `• \`${l.code}\` - ${l.label}`).join('\n') + '\n\n' +
+        '💡 *Example:* `/translate es Hello, how are you?`\n' +
+        '💡 *Example:* `/translate fr Good morning everyone`'
+      )
+    );
+  }
+  
+  const targetLangCode = args[0].toLowerCase();
+  const textToTranslate = args.slice(1).join(' ');
+  
+  // Validate language code
+  const targetLanguage = languages.find(l => l.code === targetLangCode);
+  if (!targetLanguage) {
+    return ctx.replyWithMarkdownV2(
+      escapeMarkdownV2(
+        '❌ *Invalid Language Code*\n\n' +
+        `Language code \`${targetLangCode}\` not supported.\n\n` +
+        '🔤 *Supported Languages:*\n' +
+        languages.map(l => `• \`${l.code}\` - ${l.label}`).join('\n')
+      )
+    );
+  }
+  
+  // Show typing indicator
+  await ctx.sendChatAction('typing');
+  
+  let translationResult = null;
+  
+  // Try Google Translate API first (dedicated translation service)
+  if (googleTranslate) {
+    try {
+      console.log('🔄 Using Google Translate API...');
+      const [translation] = await googleTranslate.translate(textToTranslate, targetLangCode);
+      translationResult = translation;
+      console.log('✅ Google Translate API successful');
+    } catch (err) {
+      console.error('❌ Google Translate API failed:', err.message);
+    }
+  }
+  
+  // Try Google Gemini AI for translation as fallback (Google's AI service for translation)
+  if (!translationResult && geminiAI) {
+    try {
+      console.log('🔄 Using Google Translate (Gemini AI) as fallback...');
+      const translationPrompt = `Translate the following text to ${targetLanguage.label.split(' ')[1]}: "${textToTranslate}". Only provide the translation, no explanations or additional text.`;
+      const model = geminiAI.getGenerativeModel({ model: 'gemini-pro' });
+      const result = await model.generateContent(translationPrompt);
+      const response = await result.response;
+      translationResult = response.text();
+      console.log('✅ Google Translate (Gemini AI) fallback successful');
+    } catch (err) {
+      console.error('❌ Google Translate (Gemini AI) fallback failed:', err.message);
+    }
+  }
+  
+  // Try AI APIs as additional fallback
+  if (!translationResult) {
+    console.log('🔄 Trying additional AI APIs as fallback...');
+    for (let url of aiAPIs) {
+      try {
+        const translationPrompt = `Translate the following text to ${targetLanguage.label.split(' ')[1]}: "${textToTranslate}". Only provide the translation, no explanations or additional text.`;
+        const { data } = await axios.get(url, {
+          params: {
+            apikey: process.env.AI_API_KEY || 'gifted',
+            q: translationPrompt,
+            lang: targetLangCode
+          }
+        });
+        
+        if (data && data.gifteddevs && data.gifteddevs.trim()) {
+          translationResult = data.gifteddevs
+            .trim()
+            .replace(/\*\*(.+?)\*\*/g, '*$1*');
+          console.log('✅ AI API fallback translation successful');
+          break;
+        }
+      } catch (err) {
+        console.error('❌ AI API fallback translation failed:', err.message);
+        continue;
+      }
+    }
+  }
+  
+  if (translationResult) {
+    ctx.replyWithMarkdownV2(
+      `🌍 *Translation Result*\\n\\n` +
+      `📝 *Original:* ${escapeMarkdownV2(textToTranslate)}\\n` +
+      `🔤 *Language:* ${escapeMarkdownV2(targetLanguage.label)}\\n` +
+      `✨ *Translation:* ${escapeMarkdownV2(translationResult)}\\n\\n` +
+      `🤖 _Powered by Google Translate_`
+    );
+  } else {
+    ctx.replyWithMarkdownV2(
+      escapeMarkdownV2(
+        '❌ *Translation Failed*\n\n' +
+        '🔧 Unable to process translation at this time.\n' +
+        '⏰ Please try again later.\n\n' +
+        '💡 *Alternative:* Try rephrasing your text or use a different language.'
+      )
+    );
+  }
 });
 
 // ========== Callback Query Handler ==========
@@ -1652,7 +2196,7 @@ bot.on('callback_query', async (ctx) => {
     await ctx.replyWithMarkdownV2(
       escapeMarkdownV2(
         "🆘 *Cool Shot AI Help*\n\n" +
-        "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+        "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /translate <lang_code> <text> to translate text\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
       )
     );
   }
@@ -1660,7 +2204,7 @@ bot.on('callback_query', async (ctx) => {
   else if (data === 'show_games') {
     await ctx.editMessageText(
       '🎮 *Cool Shot Games & Fun*\\n\\n' +
-      '🎲 **Available Games:**\\n' +
+      '🎲 *Available Games:*\\n' +
       '• `/dice` \\- Roll a dice \\(1\\-6\\)\\n' +
       '• `/coin` \\- Flip a coin\\n' +
       '• `/number` \\- Random number \\(1\\-100\\)\\n' +
@@ -1676,15 +2220,17 @@ bot.on('callback_query', async (ctx) => {
   else if (data === 'show_tools') {
     await ctx.editMessageText(
       '🛠️ *Text Utilities Toolkit*\\n\\n' +
-      '📝 **Available Tools:**\\n' +
+      '📝 *Available Tools:*\\n' +
       '• `/count <text>` \\- Count words and characters\\n' +
       '• `/reverse <text>` \\- Reverse text\\n' +
       '• `/upper <text>` \\- Convert to UPPERCASE\\n' +
       '• `/lower <text>` \\- Convert to lowercase\\n' +
       '• `/title <text>` \\- Convert To Title Case\\n' +
       '• `/encode <text>` \\- Base64 encode text\\n' +
-      '• `/decode <text>` \\- Base64 decode text\\n\\n' +
-      '💡 *Example:* `/count Hello World` will show character and word count',
+      '• `/decode <text>` \\- Base64 decode text\\n' +
+      '• `/translate <lang> <text>` \\- Translate text to any language\\n\\n' +
+      '💡 *Example:* `/count Hello World` will show character and word count\\n' +
+      '💡 *Example:* `/translate es Hello World` translates to Spanish',
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery('🛠️ Text tools loaded');
@@ -1708,13 +2254,13 @@ bot.on('callback_query', async (ctx) => {
     
     await ctx.editMessageText(
       `📊 *Cool Shot AI Statistics*\\n\\n` +
-      `⏰ **Bot Uptime:** ${uptimeDays}d ${uptimeHours}h\\n` +
-      `👥 **Total Users:** ${totalUsers}\\n` +
-      `🛡️ **Administrators:** ${totalAdmins}\\n` +
-      `🎯 **Active Today:** ${activeToday}\\n` +
-      `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-      `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-      `👤 **Your Settings:**\\n` +
+      `⏰ *Bot Uptime:* ${uptimeDays}d ${uptimeHours}h\\n` +
+      `👥 *Total Users:* ${totalUsers}\\n` +
+      `🛡️ *Administrators:* ${totalAdmins}\\n` +
+      `🎯 *Active Today:* ${activeToday}\\n` +
+      `💬 *Total Messages:* ${analytics.totalMessages}\\n` +
+      `⚡ *Total Commands:* ${analytics.totalCommands}\\n\\n` +
+      `👤 *Your Settings:*\\n` +
       `🧠 Role: ${escapeMarkdownV2(userRole)}\\n` +
       `🌐 Language: ${escapeMarkdownV2(langLabel)}\\n\\n` +
       `✨ _Powered by Cool Shot Systems_`,
@@ -1762,10 +2308,10 @@ bot.on('callback_query', async (ctx) => {
     
     await ctx.editMessageText(
       `📊 *System Statistics*\\n\\n` +
-      `👥 **Total Users:** ${totalUsers}\\n` +
-      `🛡️ **Administrators:** ${adminCount}\\n` +
-      `🧠 **Custom Roles Set:** ${rolesSet}\\n` +
-      `🌍 **Languages Set:** ${langsSet}\\n\\n` +
+      `👥 *Total Users:* ${totalUsers}\\n` +
+      `🛡️ *Administrators:* ${adminCount}\\n` +
+      `🧠 *Custom Roles Set:* ${rolesSet}\\n` +
+      `🌍 *Languages Set:* ${langsSet}\\n\\n` +
       `✨ *System Status:* All operational`,
       { parse_mode: 'MarkdownV2' }
     );
@@ -1851,8 +2397,8 @@ bot.on('callback_query', async (ctx) => {
       .slice(0, 10);
     
     let message = `⚡ *Command Usage Statistics*\\n\\n`;
-    message += `📊 **Total Commands:** ${analytics.totalCommands}\\n\\n`;
-    message += `🏆 **Top Commands:**\\n`;
+    message += `📊 *Total Commands:* ${analytics.totalCommands}\\n\\n`;
+    message += `🏆 *Top Commands:*\\n`;
     
     sortedCommands.forEach(([command, count], index) => {
       const percentage = ((count / analytics.totalCommands) * 100).toFixed(1);
@@ -1923,12 +2469,12 @@ bot.on('callback_query', async (ctx) => {
     
     await ctx.editMessageText(
       `📊 *Full Analytics Dashboard*\\n\\n` +
-      `⏰ **Uptime:** ${uptime} days\\n` +
-      `👥 **Total Users:** ${totalUsers}\\n` +
-      `🎯 **Active Today:** ${activeToday}\\n` +
-      `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-      `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-      `🏆 **Top Commands:**\\n${topCommands || 'No data'}\\n\\n` +
+      `⏰ *Uptime:* ${uptime} days\\n` +
+      `👥 *Total Users:* ${totalUsers}\\n` +
+      `🎯 *Active Today:* ${activeToday}\\n` +
+      `💬 *Total Messages:* ${analytics.totalMessages}\\n` +
+      `⚡ *Total Commands:* ${analytics.totalCommands}\\n\\n` +
+      `🏆 *Top Commands:*\\n${topCommands || 'No data'}\\n\\n` +
       `✨ _Full analytics for RayBen445_`,
       { parse_mode: 'MarkdownV2' }
     );
@@ -1938,7 +2484,7 @@ bot.on('callback_query', async (ctx) => {
     let message = `🔧 *AI API Status Dashboard*\\n\\n`;
     
     // Check primary APIs
-    message += `🎯 **Primary APIs \\(${aiAPIs.length}\\):**\\n`;
+    message += `🎯 *Primary APIs \\(${aiAPIs.length}\\):*\\n\\n`;
     for (let i = 0; i < aiAPIs.length; i++) {
       const url = aiAPIs[i];
       const apiName = url.includes('gpt4o') ? 'GPT\\-4o' : 
@@ -1946,11 +2492,11 @@ bot.on('callback_query', async (ctx) => {
                      url.includes('meta-llama') ? 'Meta Llama' :
                      url.includes('copilot') ? 'Copilot' :
                      `API ${i + 1}`;
-      message += `${i + 1}\\. ${apiName} \\- GiftedTech\\n`;
+      message += `   ${i + 1}\\. ${apiName} \\- GiftedTech\\n`;
     }
     
     // Check Google Gemini status
-    message += `\\n🤖 **Fallback API:**\\n`;
+    message += `\\n🤖 *Fallback API:*\\n`;
     if (geminiAI) {
       message += `✅ Google Gemini \\- *Configured & Ready*\\n`;
     } else {
@@ -1958,12 +2504,31 @@ bot.on('callback_query', async (ctx) => {
       message += `💡 Set GOOGLE\\_API\\_KEY to enable fallback\\n`;
     }
     
-    message += `\\n📊 **API Flow:**\\n`;
+    // Check Google Translation status
+    message += `\\n🌍 *Translation Service:*\\n`;
+    if (googleTranslate) {
+      message += `✅ Google Translate \\- *Active*\\n`;
+    } else {
+      message += `⚠️ Google Translate \\- *Not Configured*\\n`;
+    }
+    
+    // Check Voice Services status
+    message += `\\n🎤 *Voice Services:*\\n`;
+    if (speechClient && ttsClient) {
+      message += `✅ Speech\\-to\\-Text \\- *Active*\\n`;
+      message += `✅ Text\\-to\\-Speech \\- *Active*\\n`;
+      message += `🎙️ Voice Commands \\- *Enabled*\\n`;
+    } else {
+      message += `⚠️ Voice Services \\- *Not Configured*\\n`;
+      message += `💡 Google Cloud APIs required for voice\\n`;
+    }
+    
+    message += `\\n📊 *API Flow:*\\n`;
     message += `1\\. Try all ${aiAPIs.length} primary APIs sequentially\\n`;
     message += `2\\. If all fail, use Google Gemini fallback\\n`;
     message += `3\\. If still no response, show helpful error\\n\\n`;
     
-    message += `🛡️ **Brand Protection:**\\n`;
+    message += `🛡️ *Brand Protection:*\\n`;
     message += `• All responses maintain Cool Shot AI identity\\n`;
     message += `• Comprehensive text replacement active\\n`;
     message += `• No external provider names visible\\n\\n`;
