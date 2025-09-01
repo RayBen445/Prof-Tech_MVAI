@@ -745,7 +745,7 @@ bot.command('apistatus', async (ctx) => {
   let message = `🔧 *AI API Status Dashboard*\\n\\n`;
   
   // Check primary APIs
-  message += `🎯 *Primary APIs \\(${aiAPIs.length}\\):*\\n`;
+  message += `🎯 *Primary APIs \\(${aiAPIs.length}\\):*\\n\\n`;
   for (let i = 0; i < aiAPIs.length; i++) {
     const url = aiAPIs[i];
     const apiName = url.includes('gpt4o') ? 'GPT-4o' : 
@@ -753,7 +753,7 @@ bot.command('apistatus', async (ctx) => {
                    url.includes('meta-llama') ? 'Meta Llama' :
                    url.includes('copilot') ? 'Copilot' :
                    `API ${i + 1}`;
-    message += `${i + 1}\\. ${escapeMarkdownV2(apiName)} \\- GiftedTech\\n`;
+    message += `   ${i + 1}\\. ${escapeMarkdownV2(apiName)} \\- GiftedTech\\n`;
   }
   
   // Check Google Gemini status
@@ -2045,7 +2045,7 @@ bot.on('callback_query', async (ctx) => {
     let message = `🔧 *AI API Status Dashboard*\\n\\n`;
     
     // Check primary APIs
-    message += `🎯 *Primary APIs \\(${aiAPIs.length}\\):*\\n`;
+    message += `🎯 *Primary APIs \\(${aiAPIs.length}\\):*\\n\\n`;
     for (let i = 0; i < aiAPIs.length; i++) {
       const url = aiAPIs[i];
       const apiName = url.includes('gpt4o') ? 'GPT\\-4o' : 
@@ -2053,7 +2053,7 @@ bot.on('callback_query', async (ctx) => {
                      url.includes('meta-llama') ? 'Meta Llama' :
                      url.includes('copilot') ? 'Copilot' :
                      `API ${i + 1}`;
-      message += `${i + 1}\\. ${apiName} \\- GiftedTech\\n`;
+      message += `   ${i + 1}\\. ${apiName} \\- GiftedTech\\n`;
     }
     
     // Check Google Gemini status
