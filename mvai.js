@@ -56,6 +56,7 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Helper for Telegram MarkdownV2 escaping
+// IMPORTANT: Always use escapeMarkdownV2() for hardcoded MarkdownV2 messages to prevent Telegram 400 errors
 function escapeMarkdownV2(text) {
   return text.replace(/([_*[\]()~`>#+=|{}.!-])/g, '\\$1');
 }
@@ -567,10 +568,12 @@ bot.start(async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('start', ctx.from.id);
   ctx.replyWithMarkdownV2(
-    "👋 *Hello, I'm Cool Shot AI!*\\n\\n" +
-    "🤖 Developed by *Cool Shot Systems*, your intelligent assistant is now online!\\n\\n" +
-    "💡 Ask me anything:\\n🧮 Math | 💊 Health | 💻 Tech | 🎭 Creativity\\n\\n" +
-    "🎓 Use /role to switch brain mode\\n🌐 Use /lang to choose language\\n🛠️ Use /buttons for quick menu\\n🔄 Use /reset to reset settings\\n🎮 Use /games for fun activities\\n🆘 Use /support <your message> for support\\n🚀 Let's go!"
+    escapeMarkdownV2(
+      "👋 *Hello, I'm Cool Shot AI!*\n\n" +
+      "🤖 Developed by *Cool Shot Systems*, your intelligent assistant is now online!\n\n" +
+      "💡 Ask me anything:\n🧮 Math | 💊 Health | 💻 Tech | 🎭 Creativity\n\n" +
+      "🎓 Use /role to switch brain mode\n🌐 Use /lang to choose language\n🛠️ Use /buttons for quick menu\n🔄 Use /reset to reset settings\n🎮 Use /games for fun activities\n🆘 Use /support <your message> for support\n🚀 Let's go!"
+    )
   );
 });
 
@@ -579,9 +582,11 @@ bot.command('about', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('about', ctx.from.id);
   ctx.replyWithMarkdownV2(
-    "ℹ️ *About Cool Shot AI*\\n\\n" +
-    "🤖 Developed by *Cool Shot Systems*\\n💡 Multi-role intelligent assistant powered by AI endpoints\\n🌐 15+ languages supported\\n🧠 100+ Knowledge Roles\\n\\n" +
-    "🎓 Use /role and /lang\\n🛠️ Use /buttons for quick settings\\n🔄 Use /reset to reset settings\\n🆘 Use /support <your message> for support"
+    escapeMarkdownV2(
+      "ℹ️ *About Cool Shot AI*\n\n" +
+      "🤖 Developed by *Cool Shot Systems*\n💡 Multi-role intelligent assistant powered by AI endpoints\n🌐 15+ languages supported\n🧠 100+ Knowledge Roles\n\n" +
+      "🎓 Use /role and /lang\n🛠️ Use /buttons for quick settings\n🔄 Use /reset to reset settings\n🆘 Use /support <your message> for support"
+    )
   );
 });
 
@@ -590,8 +595,10 @@ bot.command('help', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('help', ctx.from.id);
   ctx.replyWithMarkdownV2(
-    "🆘 *Cool Shot AI Help*\\n\\n" +
-    "• Use /start to see welcome\\n• /role to pick your expert mode\\n• /lang for language\\n• /about for info\\n• /reset for a fresh start\\n• /buttons for quick menu\\n• /games for fun activities\\n• /tools for text utilities\\n• /stats for bot statistics\\n• /support <your message> if you need help\\n• /ping to check bot status"
+    escapeMarkdownV2(
+      "🆘 *Cool Shot AI Help*\n\n" +
+      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+    )
   );
 });
 
@@ -600,12 +607,14 @@ bot.command('support', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('support', ctx.from.id);
   ctx.replyWithMarkdownV2(
-    "🆘 *Cool Shot AI Support Center*\\n\\n" +
-    "💌 *Contact Options:*\\n" +
-    "• Email: support@coolshotsystems\\.com\\n" +
-    "• Quick Help: `/support <your message>`\\n\\n" +
-    "⚡ *Response Time:* Our admins respond ASAP\\!\\n\\n" +
-    "💡 *Tip:* Be specific about your issue for faster resolution\\."
+    escapeMarkdownV2(
+      "🆘 *Cool Shot AI Support Center*\n\n" +
+      "💌 *Contact Options:*\n" +
+      "• Email: support@coolshotsystems.com\n" +
+      "• Quick Help: `/support <your message>`\n\n" +
+      "⚡ *Response Time:* Our admins respond ASAP!\n\n" +
+      "💡 *Tip:* Be specific about your issue for faster resolution."
+    )
   );
 });
 
@@ -613,7 +622,7 @@ bot.command('support', async (ctx) => {
 bot.command('ping', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('ping', ctx.from.id);
-  ctx.replyWithMarkdownV2('🏓 *Cool Shot AI Status: ONLINE*\\n\\n✅ All systems operational\\!');
+  ctx.replyWithMarkdownV2(escapeMarkdownV2('🏓 *Cool Shot AI Status: ONLINE*\n\n✅ All systems operational!'));
 });
 
 // Reset Command
@@ -624,10 +633,12 @@ bot.command('reset', async (ctx) => {
   delete userRoles[userId];
   delete userLanguages[userId];
   ctx.replyWithMarkdownV2(
-    '🔄 *Settings Reset Complete*\\n\\n' +
-    '✅ Role: Default \\(Brain Master\\)\\n' +
-    '✅ Language: Default \\(English\\)\\n\\n' +
-    '💡 Use /role and /lang to customize again\\!'
+    escapeMarkdownV2(
+      '🔄 *Settings Reset Complete*\n\n' +
+      '✅ Role: Default (Brain Master)\n' +
+      '✅ Language: Default (English)\n\n' +
+      '💡 Use /role and /lang to customize again!'
+    )
   );
 });
 
@@ -635,7 +646,7 @@ bot.command('reset', async (ctx) => {
 bot.command('role', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('role', ctx.from.id);
-  ctx.replyWithMarkdownV2('🧠 *Choose Your Expert Role*\\n\\n💡 Select a role to customize AI responses:', {
+  ctx.replyWithMarkdownV2(escapeMarkdownV2('🧠 *Choose Your Expert Role*\n\n💡 Select a role to customize AI responses:'), {
     reply_markup: {
       inline_keyboard: chunkArray(roles, 4).map(row =>
         row.map(r => ({ text: r, callback_data: `role_${r}` }))
@@ -648,7 +659,7 @@ bot.command('role', async (ctx) => {
 bot.command('lang', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('lang', ctx.from.id);
-  ctx.replyWithMarkdownV2('🌍 *Choose Your Language*\\n\\n🗣️ Select your preferred language for responses:', {
+  ctx.replyWithMarkdownV2(escapeMarkdownV2('🌍 *Choose Your Language*\n\n🗣️ Select your preferred language for responses:'), {
     reply_markup: {
       inline_keyboard: chunkArray(languages, 3).map(row =>
         row.map(l => ({ text: l.label, callback_data: `lang_${l.code}` }))
@@ -661,7 +672,7 @@ bot.command('lang', async (ctx) => {
 bot.command('buttons', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('buttons', ctx.from.id);
-  ctx.replyWithMarkdownV2('⚙️ *Quick Settings Menu*\\n\\n🚀 Choose an action below:', {
+  ctx.replyWithMarkdownV2(escapeMarkdownV2('⚙️ *Quick Settings Menu*\n\n🚀 Choose an action below:'), {
     reply_markup: {
       inline_keyboard: [
         [{ text: '🧠 Choose Role', callback_data: 'show_role' }],
@@ -896,7 +907,7 @@ bot.command('admin', async (ctx) => {
     buttons.push([{ text: '📊 Full Analytics', callback_data: 'admin_analytics' }]);
   }
 
-  ctx.replyWithMarkdownV2('🛡️ *Admin Control Panel*\\n\\n✨ Welcome to the administrative dashboard\\!', {
+  ctx.replyWithMarkdownV2(escapeMarkdownV2('🛡️ *Admin Control Panel*\n\n✨ Welcome to the administrative dashboard!'), {
     reply_markup: {
       inline_keyboard: buttons
     }
@@ -909,16 +920,18 @@ bot.command('*', async (ctx) => {
   await trackCommand('unknown', ctx.from.id);
   const command = ctx.message.text.split(' ')[0];
   ctx.replyWithMarkdownV2(
-    `❓ *Unknown Command*\\n\\n` +
-    `The command \`${escapeMarkdownV2(command)}\` is not recognized\\.\\n\\n` +
-    `🆘 *Available Commands:*\\n` +
-    `• /help \\- View all commands\\n` +
-    `• /about \\- Learn about Cool Shot AI\\n` +
-    `• /buttons \\- Quick action menu\\n` +
-    `• /games \\- Fun activities\\n` +
-    `• /tools \\- Text utilities\\n` +
-    `• /start \\- Welcome message\\n\\n` +
-    `💡 *Tip:* Use /help to see the complete command list\\!`
+    escapeMarkdownV2(
+      `❓ *Unknown Command*\n\n` +
+      `The command \`${command}\` is not recognized.\n\n` +
+      `🆘 *Available Commands:*\n` +
+      `• /help - View all commands\n` +
+      `• /about - Learn about Cool Shot AI\n` +
+      `• /buttons - Quick action menu\n` +
+      `• /games - Fun activities\n` +
+      `• /tools - Text utilities\n` +
+      `• /start - Welcome message\n\n` +
+      `💡 *Tip:* Use /help to see the complete command list!`
+    )
   );
 });
 
