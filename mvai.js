@@ -2,6 +2,43 @@
  * Cool Shot AI Assistant Telegram Bot
  * Inspired by CS Assistant by Heritage Oladoye
  * Author: CoolShotSystems
+ * 
+ * ADMIN RECOGNITION SYSTEM:
+ * ========================
+ * This bot uses a dynamic admin recognition system that supports:
+ * 
+ * 1. Environment Variables:
+ *    - ADMIN_IDS: Comma-separated list of Telegram user IDs
+ *      Example: ADMIN_IDS="123456789,987654321"
+ *    
+ *    - ADMIN_USERNAMES: Comma-separated list of Telegram usernames (without @)
+ *      Example: ADMIN_USERNAMES="rayben445,admin2"
+ *      Note: Users must interact with the bot at least once for username resolution
+ *    
+ *    - GITHUB_ADMIN_MAPPING: JSON mapping GitHub usernames to Telegram IDs
+ *      Example: GITHUB_ADMIN_MAPPING='{"RayBen445":"123456789","otherdev":"987654321"}'
+ * 
+ * 2. Automatic Features:
+ *    - Repository owner (RayBen445) is automatically recognized as admin if mapped
+ *    - Username-to-ID resolution happens when users interact with the bot
+ *    - Fallback to hardcoded admin ID (6649936329) for backwards compatibility
+ * 
+ * 3. Adding Admins:
+ *    Method 1 - Environment Variables (Recommended):
+ *      Set ADMIN_IDS="6649936329,NEW_USER_ID" in your hosting environment
+ *    
+ *    Method 2 - Username Resolution:
+ *      Set ADMIN_USERNAMES="rayben445,new_username" 
+ *      Users must interact with bot once for ID resolution
+ *    
+ *    Method 3 - GitHub Mapping:
+ *      Set GITHUB_ADMIN_MAPPING='{"RayBen445":"6649936329","newdev":"NEW_ID"}'
+ * 
+ * 4. Admin Features:
+ *    - /admin command and admin panel access
+ *    - /broadcast command for messaging all users
+ *    - Support message routing and handling
+ *    - User statistics and management
  */
 
 const { Telegraf } = require('telegraf');
@@ -29,7 +66,97 @@ let userLanguages = {};
 let USER_IDS = new Set(); // Track user IDs for broadcast
 
 // ========== Admin Setup ==========
-const ADMIN_IDS = [6649936329]; // Add more admin IDs as needed
+/**
+ * Dynamic Admin Recognition System
+ * 
+ * Environment Variables:
+ * - ADMIN_IDS: Comma-separated list of Telegram user IDs (e.g., "123456789,987654321")
+ * - ADMIN_USERNAMES: Comma-separated list of Telegram usernames (e.g., "username1,username2")
+ * - GITHUB_ADMIN_MAPPING: JSON string mapping GitHub usernames to Telegram IDs (e.g., '{"RayBen445":"123456789"}')
+ * 
+ * Features:
+ * - Automatic GitHub username (RayBen445) recognition
+ * - Environment variable-based admin configuration
+ * - Runtime username-to-ID resolution
+ * - Fallback to hardcoded admin for backwards compatibility
+ */
+
+let ADMIN_IDS = new Set(); // Dynamic admin IDs storage
+let ADMIN_USERNAMES = new Set(); // Admin usernames to resolve
+let GITHUB_ADMIN_MAP = {}; // GitHub username to Telegram ID mapping
+let USERNAME_TO_ID_CACHE = {}; // Cache for resolved usernames
+
+// Initialize admin system
+function initializeAdmins() {
+  // Start with fallback admin ID for backwards compatibility
+  ADMIN_IDS.add(6649936329);
+  
+  // Load from environment variables
+  if (process.env.ADMIN_IDS) {
+    const adminIds = process.env.ADMIN_IDS.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+    adminIds.forEach(id => ADMIN_IDS.add(id));
+  }
+  
+  if (process.env.ADMIN_USERNAMES) {
+    const usernames = process.env.ADMIN_USERNAMES.split(',').map(u => u.trim()).filter(u => u);
+    usernames.forEach(username => ADMIN_USERNAMES.add(username));
+  }
+  
+  // Load GitHub admin mapping
+  if (process.env.GITHUB_ADMIN_MAPPING) {
+    try {
+      GITHUB_ADMIN_MAP = JSON.parse(process.env.GITHUB_ADMIN_MAPPING);
+    } catch (e) {
+      console.warn('Invalid GITHUB_ADMIN_MAPPING format:', e.message);
+    }
+  }
+  
+  // Always ensure RayBen445 (repository owner) has admin access if mapped
+  if (GITHUB_ADMIN_MAP['RayBen445']) {
+    ADMIN_IDS.add(parseInt(GITHUB_ADMIN_MAP['RayBen445']));
+  }
+  
+  console.log(`Initialized admin system with ${ADMIN_IDS.size} admin IDs and ${ADMIN_USERNAMES.size} usernames to resolve`);
+}
+
+// Check if a user ID is admin
+function isAdmin(userId) {
+  return ADMIN_IDS.has(userId);
+}
+
+// Get current admin IDs as array (for iteration)
+function getAdminIds() {
+  return Array.from(ADMIN_IDS);
+}
+
+// Attempt to resolve username to ID and add as admin
+async function tryResolveAndAddAdmin(username) {
+  if (USERNAME_TO_ID_CACHE[username]) {
+    ADMIN_IDS.add(USERNAME_TO_ID_CACHE[username]);
+    return USERNAME_TO_ID_CACHE[username];
+  }
+  
+  // For now, we'll cache when we see users interact with the bot
+  // Telegram Bot API doesn't provide a direct way to resolve username to ID
+  // This will be populated when users interact with the bot
+  return null;
+}
+
+// Cache username-to-ID mapping when users interact
+function cacheUserInfo(ctx) {
+  if (ctx.from && ctx.from.username) {
+    USERNAME_TO_ID_CACHE[ctx.from.username] = ctx.from.id;
+    
+    // Check if this username should be admin
+    if (ADMIN_USERNAMES.has(ctx.from.username)) {
+      ADMIN_IDS.add(ctx.from.id);
+      console.log(`Automatically promoted @${ctx.from.username} (${ctx.from.id}) to admin`);
+    }
+  }
+}
+
+// Initialize the admin system on startup
+initializeAdmins();
 
 // ========== Roles and Languages ==========
 const roles = [
@@ -84,11 +211,14 @@ let supportState = {};
 // ========== Main Text Handler ==========
 bot.on('text', async (ctx, next) => {
   USER_IDS.add(ctx.from.id);
+  
+  // Cache user info for admin resolution
+  cacheUserInfo(ctx);
 
   // Support query logic
   if (supportState[ctx.from.id]) {
     supportState[ctx.from.id] = false; // Reset state after receiving
-    for (const adminId of ADMIN_IDS) {
+    for (const adminId of getAdminIds()) {
       await bot.telegram.sendMessage(
         adminId,
         `📩 Support query from @${ctx.from.username || ctx.from.id} (${ctx.from.id}):\n${ctx.message.text}`
@@ -100,14 +230,14 @@ bot.on('text', async (ctx, next) => {
   // Support request via /support
   if (ctx.message.text.startsWith('/support ')) {
     const supportText = ctx.message.text.replace('/support ', '');
-    for (const adminId of ADMIN_IDS) {
+    for (const adminId of getAdminIds()) {
       await bot.telegram.sendMessage(adminId, `📩 Support request from @${ctx.from.username || ctx.from.id}:\n${supportText}`);
     }
     return ctx.reply('✅ Your support request has been sent to the team.');
   }
   // Broadcast handler (admin only)
   if (ctx.message.text.startsWith('/broadcast ')) {
-    if (!ADMIN_IDS.includes(ctx.from.id)) return;
+    if (!isAdmin(ctx.from.id)) return;
     const msg = ctx.message.text.replace('/broadcast ', '');
     for (const userId of USER_IDS) {
       await bot.telegram.sendMessage(userId, `📢 Admin Broadcast:\n${msg}`);
@@ -176,6 +306,7 @@ bot.on('text', async (ctx, next) => {
 // Start Command
 bot.start((ctx) => {
   USER_IDS.add(ctx.from.id);
+  cacheUserInfo(ctx);
   ctx.replyWithMarkdownV2(
     "👋 *Hello, I'm Cool Shot AI!*\\n\\n" +
     "🤖 Developed by *Cool Shot Systems*, your intelligent assistant is now online!\\n\\n" +
@@ -269,10 +400,41 @@ bot.command('buttons', (ctx) => {
   });
 });
 
+// Admin Info Command (for troubleshooting and setup)
+bot.command('admininfo', (ctx) => {
+  USER_IDS.add(ctx.from.id);
+  cacheUserInfo(ctx);
+  
+  const isCurrentUserAdmin = isAdmin(ctx.from.id);
+  const adminCount = getAdminIds().length;
+  const hasUsername = ctx.from.username ? `@${ctx.from.username}` : 'No username set';
+  
+  let message = `🛡️ *Admin System Info*\n\n`;
+  message += `👤 Your ID: \`${ctx.from.id}\`\n`;
+  message += `📛 Username: ${hasUsername}\n`;
+  message += `⚡ Admin Status: ${isCurrentUserAdmin ? '✅ Admin' : '❌ Not Admin'}\n`;
+  message += `👥 Total Admins: ${adminCount}\n\n`;
+  
+  if (!isCurrentUserAdmin) {
+    message += `📋 *How to become admin:*\n`;
+    message += `1️⃣ Set ADMIN_IDS env var with your ID: \`${ctx.from.id}\`\n`;
+    if (ctx.from.username) {
+      message += `2️⃣ Or set ADMIN_USERNAMES: \`${ctx.from.username}\`\n`;
+    }
+    message += `3️⃣ Or use GITHUB_ADMIN_MAPPING for GitHub users\n\n`;
+    message += `Contact the repository owner (RayBen445) for admin access.`;
+  } else {
+    message += `🎉 You have admin privileges!`;
+  }
+  
+  ctx.replyWithMarkdownV2(message.replace(/([_*[\]()~`>#+=|{}.!-])/g, '\\$1'));
+});
+
 // Admin Panel Command
 bot.command('admin', (ctx) => {
   USER_IDS.add(ctx.from.id);
-  if (!ADMIN_IDS.includes(ctx.from.id)) return ctx.reply('⛔️ Admins only.');
+  cacheUserInfo(ctx);
+  if (!isAdmin(ctx.from.id)) return ctx.reply('⛔️ Admins only.');
 
   ctx.reply('🛡️ Admin Panel', {
     reply_markup: {
@@ -288,6 +450,7 @@ bot.command('admin', (ctx) => {
 // ========== Callback Query Handler ==========
 bot.on('callback_query', async (ctx) => {
   USER_IDS.add(ctx.from.id);
+  cacheUserInfo(ctx);
   const data = ctx.callbackQuery.data;
   const userId = ctx.from.id;
 
@@ -360,7 +523,7 @@ bot.on('callback_query', async (ctx) => {
   }
   // Admin Panel
   else if (data === 'show_admin') {
-    if (!ADMIN_IDS.includes(ctx.from.id)) {
+    if (!isAdmin(ctx.from.id)) {
       await ctx.answerCbQuery('⛔️ Admins only.', { show_alert: true });
       return;
     }
@@ -377,7 +540,7 @@ bot.on('callback_query', async (ctx) => {
   }
   // Admin Stats
   else if (data === 'admin_stats') {
-    if (!ADMIN_IDS.includes(ctx.from.id)) {
+    if (!isAdmin(ctx.from.id)) {
       await ctx.answerCbQuery('⛔️ Admins only.', { show_alert: true });
       return;
     }
@@ -386,7 +549,7 @@ bot.on('callback_query', async (ctx) => {
   }
   // Admin Broadcast
   else if (data === 'admin_broadcast') {
-    if (!ADMIN_IDS.includes(ctx.from.id)) {
+    if (!isAdmin(ctx.from.id)) {
       await ctx.answerCbQuery('⛔️ Admins only.', { show_alert: true });
       return;
     }
@@ -395,7 +558,7 @@ bot.on('callback_query', async (ctx) => {
   }
   // Admin Support Requests (for demo, just info)
   else if (data === 'admin_support') {
-    if (!ADMIN_IDS.includes(ctx.from.id)) {
+    if (!isAdmin(ctx.from.id)) {
       await ctx.answerCbQuery('⛔️ Admins only.', { show_alert: true });
       return;
     }
