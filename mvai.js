@@ -57,6 +57,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Helper for Telegram MarkdownV2 escaping
 // IMPORTANT: Always use escapeMarkdownV2() for hardcoded MarkdownV2 messages to prevent Telegram 400 errors
+// IMPORTANT: Always use '\n' (not '\\n') for line breaks in multi-line bot messages - MarkdownV2 escaping is applied AFTER string formatting
 function escapeMarkdownV2(text) {
   return text.replace(/([_*[\]()~`>#+=|{}.!-])/g, '\\$1');
 }
@@ -514,9 +515,9 @@ bot.on('text', async (ctx, next) => {
         const roleLabel = roles.includes(role) ? role : 'Brain Master';
         const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
         
-        response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\\n` +
-                  `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\\n\\n` +
-                  `${cleaned}\\n\\n` +
+        response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\n` +
+                  `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\n\n` +
+                  `${cleaned}\n\n` +
                   `✨ _Powered by Cool Shot Systems_`;
         break;
       }
@@ -545,9 +546,9 @@ bot.on('text', async (ctx, next) => {
         const roleLabel = roles.includes(role) ? role : 'Brain Master';
         const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
         
-        response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\\n` +
-                  `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\\n\\n` +
-                  `${cleaned}\\n\\n` +
+        response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\n` +
+                  `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\n\n` +
+                  `${cleaned}\n\n` +
                   `✨ _Powered by Cool Shot Systems_`;
         console.log('✅ Google Gemini API response successful');
       }
@@ -561,13 +562,13 @@ bot.on('text', async (ctx, next) => {
     const roleLabel = roles.includes(role) ? role : 'Brain Master';
     const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
     
-    response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\\n` +
-              `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\\n\\n` +
-              `⚠️ I'm currently experiencing technical difficulties with my AI processing\\. Please try again in a moment\\!\\n\\n` +
-              `💡 In the meantime, you can:\\n` +
-              `• Use /games for entertainment\\n` +
-              `• Use /tools for text utilities\\n` +
-              `• Use /help for command list\\n\\n` +
+    response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\n` +
+              `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\n\n` +
+              `⚠️ I'm currently experiencing technical difficulties with my AI processing\\. Please try again in a moment\\!\n\n` +
+              `💡 In the meantime, you can:\n` +
+              `• Use /games for entertainment\n` +
+              `• Use /tools for text utilities\n` +
+              `• Use /help for command list\n\n` +
               `✨ _Cool Shot Systems \\- Always here to help_`;
   }
   ctx.replyWithMarkdownV2(response);
