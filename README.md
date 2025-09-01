@@ -5,11 +5,13 @@ A multi-role intelligent assistant Telegram bot powered by AI endpoints with sup
 ## Features
 
 - 🤖 Multi-role AI assistant (Mathematician, Doctor, Developer, etc.)
-- 🌍 15+ language support
+- 🌍 15+ language support with Google Cloud Translate API
+- 🎤 Voice interaction capabilities (Speech-to-Text & Text-to-Speech)
 - 📊 User analytics and admin panel
 - 🔒 Dynamic admin recognition system
 - 📢 Broadcast messaging
 - 🆘 Support ticket system
+- 🌐 Real-time text translation in 100+ languages
 
 ## Admin System
 
@@ -79,9 +81,18 @@ Use the `/admininfo` command to:
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Set environment variables (see Admin System section)
-4. Set `TELEGRAM_TOKEN` environment variable
-5. Run: `npm start`
+3. Set environment variables:
+   - `TELEGRAM_TOKEN` - Your Telegram bot token (required)
+   - `GOOGLE_API_KEY` - Google Cloud API key for translation & voice features (see setup guide)
+   - Admin system variables (see Admin System section above)
+4. Run: `npm start`
+
+### Google Cloud APIs Setup
+For translation and voice features, see the **[Google Cloud APIs Setup Guide](GOOGLE_CLOUD_APIS_SETUP.md)** for detailed instructions on:
+- Getting Google Cloud API keys
+- Enabling required APIs (Translate, Speech-to-Text, Text-to-Speech)
+- Platform-specific deployment configuration
+- Cost information and free tier limits
 
 ## API Endpoints
 
@@ -92,15 +103,24 @@ The bot also includes AI API endpoints via FastAPI (Python):
 
 - `/start` - Welcome message and introduction
 - `/role` - Choose your AI expert role
-- `/lang` - Select language preference
+- `/lang` - Select language preference  
+- `/translate <lang_code> <text>` - Translate text to any language
+- `/voice` - Voice features information and status
 - `/about` - Information about the bot
 - `/help` - List of available commands
 - `/buttons` - Quick settings menu
 - `/reset` - Reset your settings
 - `/support <message>` - Send support request
 - `/ping` - Check bot status
+- `/apistatus` - Check AI and service APIs status
 - `/admin` - Admin panel (admins only)
 - `/admininfo` - Admin system information
+
+### Voice Features
+- **🎤 Voice Input**: Send voice messages for hands-free interaction
+- **🔊 Voice Output**: Get both text and synthesized speech responses
+- **🌍 Multi-language**: Voice processing in multiple languages
+- **🎯 Smart Commands**: All text commands work with voice input
 
 ## Contributing
 
