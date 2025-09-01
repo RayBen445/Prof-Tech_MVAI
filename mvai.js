@@ -488,7 +488,7 @@ bot.on('text', async (ctx, next) => {
   const time = new Date().toLocaleTimeString('en-NG', { timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit' });
 
   await ctx.sendChatAction('typing');
-  let response = '🤖 Sorry, I couldn’t generate a reply.';
+  let response = escapeMarkdownV2("🤖 Sorry, I couldn't generate a reply.");
 
   for (let url of aiAPIs) {
     try {
