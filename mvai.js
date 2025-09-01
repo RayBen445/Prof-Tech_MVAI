@@ -406,9 +406,9 @@ bot.on('text', async (ctx, next) => {
         adminId,
         escapeMarkdownV2(
           `📩 *New Support Request*\n\n` +
-          `👤 **From:** ${userName} (${username})\n` +
-          `🆔 **User ID:** \`${ctx.from.id}\`\n\n` +
-          `💬 **Message:**\n${ctx.message.text}`
+          `👤 *From:* ${userName} (${username})\n` +
+          `🆔 *User ID:* \`${ctx.from.id}\`\n\n` +
+          `💬 *Message:*\n${ctx.message.text}`
         ),
         { parse_mode: 'MarkdownV2' }
       );
@@ -433,9 +433,9 @@ bot.on('text', async (ctx, next) => {
         adminId, 
         escapeMarkdownV2(
           `📩 *Support Request*\n\n` +
-          `👤 **From:** ${userName} (${username})\n` +
-          `🆔 **User ID:** \`${ctx.from.id}\`\n\n` +
-          `💬 **Message:**\n${supportText}`
+          `👤 *From:* ${userName} (${username})\n` +
+          `🆔 *User ID:* \`${ctx.from.id}\`\n\n` +
+          `💬 *Message:*\n${supportText}`
         ),
         { parse_mode: 'MarkdownV2' }
       );
@@ -461,8 +461,8 @@ bot.on('text', async (ctx, next) => {
         userId, 
         escapeMarkdownV2(
           `📢 *Admin Broadcast*\n\n` +
-          `👤 **From:** ${adminName}\n\n` +
-          `💬 **Message:**\n${msg}`
+          `👤 *From:* ${adminName}\n\n` +
+          `💬 *Message:*\n${msg}`
         ),
         { parse_mode: 'MarkdownV2' }
       );
@@ -610,7 +610,7 @@ bot.command('help', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       "🆘 *Cool Shot AI Help*\n\n" +
-      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /translate <lang_code> <text> to translate text\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
     )
   );
 });
@@ -745,7 +745,7 @@ bot.command('apistatus', async (ctx) => {
   let message = `🔧 *AI API Status Dashboard*\\n\\n`;
   
   // Check primary APIs
-  message += `🎯 **Primary APIs \\(${aiAPIs.length}\\):**\\n`;
+  message += `🎯 *Primary APIs \\(${aiAPIs.length}\\):*\\n`;
   for (let i = 0; i < aiAPIs.length; i++) {
     const url = aiAPIs[i];
     const apiName = url.includes('gpt4o') ? 'GPT-4o' : 
@@ -757,7 +757,7 @@ bot.command('apistatus', async (ctx) => {
   }
   
   // Check Google Gemini status
-  message += `\\n🤖 **Fallback API:**\\n`;
+  message += `\\n🤖 *Fallback API:*\\n`;
   if (geminiAI) {
     message += `✅ Google Gemini \\- *Configured & Ready*\\n`;
   } else {
@@ -765,12 +765,12 @@ bot.command('apistatus', async (ctx) => {
     message += `💡 Set GOOGLE\\_API\\_KEY environment variable to enable\\n`;
   }
   
-  message += `\\n📊 **API Flow:**\\n`;
+  message += `\\n📊 *API Flow:*\\n`;
   message += `1\\. Try all ${aiAPIs.length} primary APIs sequentially\\n`;
   message += `2\\. If all fail, use Google Gemini fallback\\n`;
   message += `3\\. If still no response, show enhanced error message\\n\\n`;
   
-  message += `🛡️ **Brand Protection:**\\n`;
+  message += `🛡️ *Brand Protection:*\\n`;
   message += `• All responses maintain Cool Shot AI identity\\n`;
   message += `• Comprehensive text replacement ensures consistency\\n`;
   message += `• No external provider names leak through\\n\\n`;
@@ -794,7 +794,7 @@ bot.command('users', async (ctx) => {
   const adminUsers = userList.filter(user => user.isAdmin);
   
   let message = `👥 *User Database* (${totalUsers} users)\n\n`;
-  message += `🛡️ **Admins (${adminUsers.length}):**\n`;
+  message += `🛡️ *Admins (${adminUsers.length}):*\n`;
   
   adminUsers.forEach((user, index) => {
     const name = user.firstName || 'Unknown';
@@ -803,7 +803,7 @@ bot.command('users', async (ctx) => {
     message += `${index + 1}. ${name} (${username}) - ID: \`${user.id}\`${isPrimary}\n`;
   });
   
-  message += `\n👤 **Regular Users (${totalUsers - adminUsers.length}):**\n`;
+  message += `\n👤 *Regular Users (${totalUsers - adminUsers.length}):*\n`;
   const regularUsers = userList.filter(user => !user.isAdmin).slice(0, 20); // Limit to first 20
   
   regularUsers.forEach((user, index) => {
@@ -942,6 +942,7 @@ bot.command('*', async (ctx) => {
       `• /buttons - Quick action menu\n` +
       `• /games - Fun activities\n` +
       `• /tools - Text utilities\n` +
+      `• /translate - Translate text to any language\n` +
       `• /start - Welcome message\n\n` +
       `💡 *Tip:* Use /help to see the complete command list!`
     )
@@ -988,13 +989,13 @@ bot.command('analytics', async (ctx) => {
 
   ctx.replyWithMarkdownV2(
     `📊 *Bot Analytics Dashboard*\\n\\n` +
-    `⏰ **Uptime:** ${uptime} days\\n` +
-    `👥 **Total Users:** ${totalUsers}\\n` +
-    `🎯 **Active Today:** ${activeToday}\\n` +
-    `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-    `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-    `🏆 **Top Commands:**\\n${topCommands || 'No data'}\\n\\n` +
-    `👑 **Most Active Users:**\\n${topUsers || 'No data'}\\n\\n` +
+    `⏰ *Uptime:* ${uptime} days\\n` +
+    `👥 *Total Users:* ${totalUsers}\\n` +
+    `🎯 *Active Today:* ${activeToday}\\n` +
+    `💬 *Total Messages:* ${analytics.totalMessages}\\n` +
+    `⚡ *Total Commands:* ${analytics.totalCommands}\\n\\n` +
+    `🏆 *Top Commands:*\\n${topCommands || 'No data'}\\n\\n` +
+    `👑 *Most Active Users:*\\n${topUsers || 'No data'}\\n\\n` +
     `✨ _Analytics powered by Cool Shot Systems_`
   );
 });
@@ -1025,18 +1026,18 @@ bot.command('activity', async (ctx) => {
     
     ctx.replyWithMarkdownV2(
       `👤 *User Activity Report*\\n\\n` +
-      `📛 **Name:** ${escapeMarkdownV2(user.firstName || 'Unknown')}\\n` +
-      `🆔 **ID:** \`${user.id}\`\\n` +
-      `👤 **Username:** ${user.username ? `@${escapeMarkdownV2(user.username)}` : 'No username'}\\n` +
-      `🛡️ **Admin:** ${user.isAdmin ? '✅ Yes' : '❌ No'}\\n\\n` +
-      `📊 **Activity Stats:**\\n` +
+      `📛 *Name:* ${escapeMarkdownV2(user.firstName || 'Unknown')}\\n` +
+      `🆔 *ID:* \`${user.id}\`\\n` +
+      `👤 *Username:* ${user.username ? `@${escapeMarkdownV2(user.username)}` : 'No username'}\\n` +
+      `🛡️ *Admin:* ${user.isAdmin ? '✅ Yes' : '❌ No'}\\n\\n` +
+      `📊 *Activity Stats:*\\n` +
       `💬 Messages: ${messages}\\n` +
       `⚡ Commands: ${commands}\\n` +
       `🎯 Total: ${totalActivity}\\n\\n` +
-      `📅 **Dates:**\\n` +
+      `📅 *Dates:*\\n` +
       `🆕 First Seen: ${escapeMarkdownV2(new Date(user.firstSeen).toLocaleDateString())}\\n` +
       `👁️ Last Seen: ${escapeMarkdownV2(new Date(user.lastSeen).toLocaleDateString())}\\n\\n` +
-      `📝 **Notes:** ${escapeMarkdownV2(user.notes || 'No notes')}`
+      `📝 *Notes:* ${escapeMarkdownV2(user.notes || 'No notes')}`
     );
   } else {
     // Show general activity overview
@@ -1050,7 +1051,7 @@ bot.command('activity', async (ctx) => {
       .slice(0, 10);
     
     let message = `📈 *Recent User Activity*\\n\\n`;
-    message += `🎯 **Active in last 3 days:** ${recentUsers.length}\\n\\n`;
+    message += `🎯 *Active in last 3 days:* ${recentUsers.length}\\n\\n`;
     
     recentUsers.forEach((user, i) => {
       const name = user.firstName || 'Unknown';
@@ -1101,15 +1102,17 @@ bot.command('tools', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       '🛠️ *Text Utilities Toolkit*\n\n' +
-      '📝 **Available Tools:**\n' +
+      '📝 *Available Tools:*\n' +
       '• `/count <text>` - Count words and characters\n' +
       '• `/reverse <text>` - Reverse text\n' +
       '• `/upper <text>` - Convert to UPPERCASE\n' +
       '• `/lower <text>` - Convert to lowercase\n' +
       '• `/title <text>` - Convert To Title Case\n' +
       '• `/encode <text>` - Base64 encode text\n' +
-      '• `/decode <text>` - Base64 decode text\n\n' +
-      '💡 *Example:* `/count Hello World` will show character and word count'
+      '• `/decode <text>` - Base64 decode text\n' +
+      '• `/translate <lang> <text>` - Translate text to any language\n\n' +
+      '💡 *Example:* `/count Hello World` will show character and word count\n' +
+      '💡 *Example:* `/translate es Hello World` translates to Spanish'
     )
   );
 });
@@ -1130,8 +1133,8 @@ bot.command('count', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `📊 *Text Analysis Results*\n\n` +
-      `📝 **Text:** "${text}"\n\n` +
-      `🔢 **Statistics:**\n` +
+      `📝 *Text:* "${text}"\n\n` +
+      `🔢 *Statistics:*\n` +
       `• Words: ${words}\n` +
       `• Characters: ${chars}\n` +
       `• Characters (no spaces): ${charsNoSpaces}\n\n` +
@@ -1153,8 +1156,8 @@ bot.command('reverse', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🔄 *Text Reversal*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `🔄 **Reversed:** "${reversed}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `🔄 *Reversed:* "${reversed}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -1172,8 +1175,8 @@ bot.command('upper', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🔤 *UPPERCASE CONVERSION*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `🔤 **UPPERCASE:** "${text.toUpperCase()}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `🔤 *UPPERCASE:* "${text.toUpperCase()}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -1191,8 +1194,8 @@ bot.command('lower', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🔡 *lowercase conversion*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `🔡 **lowercase:** "${text.toLowerCase()}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `🔡 *lowercase:* "${text.toLowerCase()}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -1214,8 +1217,8 @@ bot.command('title', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `📄 *Title Case Conversion*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `📄 **Title Case:** "${titleCase}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `📄 *Title Case:* "${titleCase}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -1235,8 +1238,8 @@ bot.command('encode', async (ctx) => {
     ctx.replyWithMarkdownV2(
       escapeMarkdownV2(
         `🔐 *Base64 Encoding*\n\n` +
-        `📝 **Original:** "${text}"\n` +
-        `🔐 **Encoded:** \`${encoded}\`\n\n` +
+        `📝 *Original:* "${text}"\n` +
+        `🔐 *Encoded:* \`${encoded}\`\n\n` +
         `✨ _Powered by Cool Shot Systems_`
       )
     );
@@ -1259,8 +1262,8 @@ bot.command('decode', async (ctx) => {
     ctx.replyWithMarkdownV2(
       escapeMarkdownV2(
         `🔓 *Base64 Decoding*\n\n` +
-        `🔐 **Encoded:** \`${text}\`\n` +
-        `🔓 **Decoded:** "${decoded}"\n\n` +
+        `🔐 *Encoded:* \`${text}\`\n` +
+        `🔓 *Decoded:* "${decoded}"\n\n` +
         `✨ _Powered by Cool Shot Systems_`
       )
     );
@@ -1277,7 +1280,7 @@ bot.command('games', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       '🎮 *Cool Shot Games & Fun*\n\n' +
-      '🎲 **Available Games:**\n' +
+      '🎲 *Available Games:*\n' +
       '• `/dice` - Roll a dice (1-6)\n' +
       '• `/coin` - Flip a coin\n' +
       '• `/number` - Random number (1-100)\n' +
@@ -1300,7 +1303,7 @@ bot.command('dice', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🎲 *Dice Roll*\n\n` +
-      `${diceEmoji} **You rolled:** ${roll}\n\n` +
+      `${diceEmoji} *You rolled:* ${roll}\n\n` +
       `🎯 _Good luck!_`
     )
   );
@@ -1315,7 +1318,7 @@ bot.command('coin', async (ctx) => {
   
   ctx.replyWithMarkdownV2(
     `🪙 *Coin Flip*\\n\\n` +
-    `${emoji} **Result:** ${result}\\n\\n` +
+    `${emoji} *Result:* ${result}\\n\\n` +
     `🎯 _Fate has decided\\!_`
   );
 });
@@ -1328,8 +1331,8 @@ bot.command('number', async (ctx) => {
   
   ctx.replyWithMarkdownV2(
     `🔢 *Random Number*\\n\\n` +
-    `🎯 **Your number:** ${number}\\n` +
-    `📊 **Range:** 1 \\- 100\\n\\n` +
+    `🎯 *Your number:* ${number}\\n` +
+    `📊 *Range:* 1 \\- 100\\n\\n` +
     `✨ _Generated by Cool Shot Systems_`
   );
 });
@@ -1357,8 +1360,8 @@ bot.command('8ball', async (ctx) => {
   
   ctx.replyWithMarkdownV2(
     `🎱 *Magic 8\\-Ball*\\n\\n` +
-    `❓ **Question:** "${escapeMarkdownV2(question)}"\\n` +
-    `🔮 **Answer:** *${escapeMarkdownV2(answer)}*\\n\\n` +
+    `❓ *Question:* "${escapeMarkdownV2(question)}"\\n` +
+    `🔮 *Answer:* *${escapeMarkdownV2(answer)}*\\n\\n` +
     `✨ _The magic 8\\-ball has spoken\\!_`
   );
 });
@@ -1465,13 +1468,13 @@ bot.command('stats', async (ctx) => {
   
   ctx.replyWithMarkdownV2(
     `📊 *Cool Shot AI Statistics*\\n\\n` +
-    `⏰ **Bot Uptime:** ${uptimeDays}d ${uptimeHours}h\\n` +
-    `👥 **Total Users:** ${totalUsers}\\n` +
-    `🛡️ **Administrators:** ${totalAdmins}\\n` +
-    `🎯 **Active Today:** ${activeToday}\\n` +
-    `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-    `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-    `👤 **Your Settings:**\\n` +
+    `⏰ *Bot Uptime:* ${uptimeDays}d ${uptimeHours}h\\n` +
+    `👥 *Total Users:* ${totalUsers}\\n` +
+    `🛡️ *Administrators:* ${totalAdmins}\\n` +
+    `🎯 *Active Today:* ${activeToday}\\n` +
+    `💬 *Total Messages:* ${analytics.totalMessages}\\n` +
+    `⚡ *Total Commands:* ${analytics.totalCommands}\\n\\n` +
+    `👤 *Your Settings:*\\n` +
     `🧠 Role: ${escapeMarkdownV2(userRole)}\\n` +
     `🌐 Language: ${escapeMarkdownV2(langLabel)}\\n\\n` +
     `✨ _Powered by Cool Shot Systems_`
@@ -1492,8 +1495,8 @@ bot.command('commands', async (ctx) => {
     .slice(0, 15);
   
   let message = `⚡ *Command Usage Statistics*\\n\\n`;
-  message += `📊 **Total Commands Executed:** ${analytics.totalCommands}\\n\\n`;
-  message += `🏆 **Top Commands:**\\n`;
+  message += `📊 *Total Commands Executed:* ${analytics.totalCommands}\\n\\n`;
+  message += `🏆 *Top Commands:*\\n`;
   
   sortedCommands.forEach(([command, count], index) => {
     const percentage = ((count / analytics.totalCommands) * 100).toFixed(1);
@@ -1546,6 +1549,106 @@ bot.command('topusers', async (ctx) => {
   message += `✨ _Rankings by Cool Shot Systems_`;
   
   ctx.replyWithMarkdownV2(message);
+});
+
+// Translation Command
+bot.command('translate', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('translate', ctx.from.id);
+  
+  const args = ctx.message.text.split(' ').slice(1); // Remove /translate
+  
+  if (args.length < 2) {
+    return ctx.replyWithMarkdownV2(
+      escapeMarkdownV2(
+        '🌍 *Translation Command*\n\n' +
+        '📝 *Usage:* `/translate [language_code] [text_to_translate]`\n\n' +
+        '🔤 *Available Languages:*\n' +
+        languages.map(l => `• \`${l.code}\` - ${l.label}`).join('\n') + '\n\n' +
+        '💡 *Example:* `/translate es Hello, how are you?`\n' +
+        '💡 *Example:* `/translate fr Good morning everyone`'
+      )
+    );
+  }
+  
+  const targetLangCode = args[0].toLowerCase();
+  const textToTranslate = args.slice(1).join(' ');
+  
+  // Validate language code
+  const targetLanguage = languages.find(l => l.code === targetLangCode);
+  if (!targetLanguage) {
+    return ctx.replyWithMarkdownV2(
+      escapeMarkdownV2(
+        '❌ *Invalid Language Code*\n\n' +
+        `Language code \`${targetLangCode}\` not supported.\n\n` +
+        '🔤 *Supported Languages:*\n' +
+        languages.map(l => `• \`${l.code}\` - ${l.label}`).join('\n')
+      )
+    );
+  }
+  
+  // Show typing indicator
+  await ctx.sendChatAction('typing');
+  
+  // Create translation prompt
+  const translationPrompt = `Translate the following text to ${targetLanguage.label.split(' ')[1]}: "${textToTranslate}". Only provide the translation, no explanations or additional text.`;
+  
+  let translationResult = null;
+  
+  // Try AI APIs for translation
+  for (let url of aiAPIs) {
+    try {
+      const { data } = await axios.get(url, {
+        params: {
+          apikey: process.env.AI_API_KEY || 'gifted',
+          q: translationPrompt,
+          lang: targetLangCode
+        }
+      });
+      
+      if (data && data.gifteddevs && data.gifteddevs.trim()) {
+        translationResult = data.gifteddevs.trim();
+        console.log('✅ AI API translation successful');
+        break;
+      }
+    } catch (err) {
+      console.error('❌ AI API translation failed:', err.message);
+      continue;
+    }
+  }
+  
+  // Try Google Gemini as fallback
+  if (!translationResult && geminiAI) {
+    try {
+      console.log('🔄 Trying Google Gemini API for translation...');
+      const model = geminiAI.getGenerativeModel({ model: 'gemini-pro' });
+      const result = await model.generateContent(translationPrompt);
+      const response = await result.response;
+      translationResult = response.text();
+      console.log('✅ Google Gemini translation successful');
+    } catch (err) {
+      console.error('❌ Google Gemini translation failed:', err.message);
+    }
+  }
+  
+  if (translationResult) {
+    ctx.replyWithMarkdownV2(
+      `🌍 *Translation Result*\\n\\n` +
+      `📝 *Original:* ${escapeMarkdownV2(textToTranslate)}\\n` +
+      `🔤 *Language:* ${escapeMarkdownV2(targetLanguage.label)}\\n` +
+      `✨ *Translation:* ${escapeMarkdownV2(translationResult)}\\n\\n` +
+      `🤖 _Translated by Cool Shot AI_`
+    );
+  } else {
+    ctx.replyWithMarkdownV2(
+      escapeMarkdownV2(
+        '❌ *Translation Failed*\n\n' +
+        '🔧 Unable to process translation at this time.\n' +
+        '⏰ Please try again later.\n\n' +
+        '💡 *Alternative:* Try rephrasing your text or use a different language.'
+      )
+    );
+  }
 });
 
 // ========== Callback Query Handler ==========
@@ -1652,7 +1755,7 @@ bot.on('callback_query', async (ctx) => {
     await ctx.replyWithMarkdownV2(
       escapeMarkdownV2(
         "🆘 *Cool Shot AI Help*\n\n" +
-        "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+        "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /translate <lang_code> <text> to translate text\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
       )
     );
   }
@@ -1660,7 +1763,7 @@ bot.on('callback_query', async (ctx) => {
   else if (data === 'show_games') {
     await ctx.editMessageText(
       '🎮 *Cool Shot Games & Fun*\\n\\n' +
-      '🎲 **Available Games:**\\n' +
+      '🎲 *Available Games:*\\n' +
       '• `/dice` \\- Roll a dice \\(1\\-6\\)\\n' +
       '• `/coin` \\- Flip a coin\\n' +
       '• `/number` \\- Random number \\(1\\-100\\)\\n' +
@@ -1676,15 +1779,17 @@ bot.on('callback_query', async (ctx) => {
   else if (data === 'show_tools') {
     await ctx.editMessageText(
       '🛠️ *Text Utilities Toolkit*\\n\\n' +
-      '📝 **Available Tools:**\\n' +
+      '📝 *Available Tools:*\\n' +
       '• `/count <text>` \\- Count words and characters\\n' +
       '• `/reverse <text>` \\- Reverse text\\n' +
       '• `/upper <text>` \\- Convert to UPPERCASE\\n' +
       '• `/lower <text>` \\- Convert to lowercase\\n' +
       '• `/title <text>` \\- Convert To Title Case\\n' +
       '• `/encode <text>` \\- Base64 encode text\\n' +
-      '• `/decode <text>` \\- Base64 decode text\\n\\n' +
-      '💡 *Example:* `/count Hello World` will show character and word count',
+      '• `/decode <text>` \\- Base64 decode text\\n' +
+      '• `/translate <lang> <text>` \\- Translate text to any language\\n\\n' +
+      '💡 *Example:* `/count Hello World` will show character and word count\\n' +
+      '💡 *Example:* `/translate es Hello World` translates to Spanish',
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery('🛠️ Text tools loaded');
@@ -1708,13 +1813,13 @@ bot.on('callback_query', async (ctx) => {
     
     await ctx.editMessageText(
       `📊 *Cool Shot AI Statistics*\\n\\n` +
-      `⏰ **Bot Uptime:** ${uptimeDays}d ${uptimeHours}h\\n` +
-      `👥 **Total Users:** ${totalUsers}\\n` +
-      `🛡️ **Administrators:** ${totalAdmins}\\n` +
-      `🎯 **Active Today:** ${activeToday}\\n` +
-      `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-      `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-      `👤 **Your Settings:**\\n` +
+      `⏰ *Bot Uptime:* ${uptimeDays}d ${uptimeHours}h\\n` +
+      `👥 *Total Users:* ${totalUsers}\\n` +
+      `🛡️ *Administrators:* ${totalAdmins}\\n` +
+      `🎯 *Active Today:* ${activeToday}\\n` +
+      `💬 *Total Messages:* ${analytics.totalMessages}\\n` +
+      `⚡ *Total Commands:* ${analytics.totalCommands}\\n\\n` +
+      `👤 *Your Settings:*\\n` +
       `🧠 Role: ${escapeMarkdownV2(userRole)}\\n` +
       `🌐 Language: ${escapeMarkdownV2(langLabel)}\\n\\n` +
       `✨ _Powered by Cool Shot Systems_`,
@@ -1762,10 +1867,10 @@ bot.on('callback_query', async (ctx) => {
     
     await ctx.editMessageText(
       `📊 *System Statistics*\\n\\n` +
-      `👥 **Total Users:** ${totalUsers}\\n` +
-      `🛡️ **Administrators:** ${adminCount}\\n` +
-      `🧠 **Custom Roles Set:** ${rolesSet}\\n` +
-      `🌍 **Languages Set:** ${langsSet}\\n\\n` +
+      `👥 *Total Users:* ${totalUsers}\\n` +
+      `🛡️ *Administrators:* ${adminCount}\\n` +
+      `🧠 *Custom Roles Set:* ${rolesSet}\\n` +
+      `🌍 *Languages Set:* ${langsSet}\\n\\n` +
       `✨ *System Status:* All operational`,
       { parse_mode: 'MarkdownV2' }
     );
@@ -1851,8 +1956,8 @@ bot.on('callback_query', async (ctx) => {
       .slice(0, 10);
     
     let message = `⚡ *Command Usage Statistics*\\n\\n`;
-    message += `📊 **Total Commands:** ${analytics.totalCommands}\\n\\n`;
-    message += `🏆 **Top Commands:**\\n`;
+    message += `📊 *Total Commands:* ${analytics.totalCommands}\\n\\n`;
+    message += `🏆 *Top Commands:*\\n`;
     
     sortedCommands.forEach(([command, count], index) => {
       const percentage = ((count / analytics.totalCommands) * 100).toFixed(1);
@@ -1923,12 +2028,12 @@ bot.on('callback_query', async (ctx) => {
     
     await ctx.editMessageText(
       `📊 *Full Analytics Dashboard*\\n\\n` +
-      `⏰ **Uptime:** ${uptime} days\\n` +
-      `👥 **Total Users:** ${totalUsers}\\n` +
-      `🎯 **Active Today:** ${activeToday}\\n` +
-      `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-      `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-      `🏆 **Top Commands:**\\n${topCommands || 'No data'}\\n\\n` +
+      `⏰ *Uptime:* ${uptime} days\\n` +
+      `👥 *Total Users:* ${totalUsers}\\n` +
+      `🎯 *Active Today:* ${activeToday}\\n` +
+      `💬 *Total Messages:* ${analytics.totalMessages}\\n` +
+      `⚡ *Total Commands:* ${analytics.totalCommands}\\n\\n` +
+      `🏆 *Top Commands:*\\n${topCommands || 'No data'}\\n\\n` +
       `✨ _Full analytics for RayBen445_`,
       { parse_mode: 'MarkdownV2' }
     );
@@ -1938,7 +2043,7 @@ bot.on('callback_query', async (ctx) => {
     let message = `🔧 *AI API Status Dashboard*\\n\\n`;
     
     // Check primary APIs
-    message += `🎯 **Primary APIs \\(${aiAPIs.length}\\):**\\n`;
+    message += `🎯 *Primary APIs \\(${aiAPIs.length}\\):*\\n`;
     for (let i = 0; i < aiAPIs.length; i++) {
       const url = aiAPIs[i];
       const apiName = url.includes('gpt4o') ? 'GPT\\-4o' : 
@@ -1950,7 +2055,7 @@ bot.on('callback_query', async (ctx) => {
     }
     
     // Check Google Gemini status
-    message += `\\n🤖 **Fallback API:**\\n`;
+    message += `\\n🤖 *Fallback API:*\\n`;
     if (geminiAI) {
       message += `✅ Google Gemini \\- *Configured & Ready*\\n`;
     } else {
@@ -1958,12 +2063,12 @@ bot.on('callback_query', async (ctx) => {
       message += `💡 Set GOOGLE\\_API\\_KEY to enable fallback\\n`;
     }
     
-    message += `\\n📊 **API Flow:**\\n`;
+    message += `\\n📊 *API Flow:*\\n`;
     message += `1\\. Try all ${aiAPIs.length} primary APIs sequentially\\n`;
     message += `2\\. If all fail, use Google Gemini fallback\\n`;
     message += `3\\. If still no response, show helpful error\\n\\n`;
     
-    message += `🛡️ **Brand Protection:**\\n`;
+    message += `🛡️ *Brand Protection:*\\n`;
     message += `• All responses maintain Cool Shot AI identity\\n`;
     message += `• Comprehensive text replacement active\\n`;
     message += `• No external provider names visible\\n\\n`;
