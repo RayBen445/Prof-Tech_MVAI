@@ -23,6 +23,7 @@
  *    - /demote <user_id> - Demote admin user (RayBen445 only)
  *    - /admininfo - Check admin status and system info
  *    - /admin - Access admin panel with stats and tools
+ *    - /apistatus - Check AI API status and configuration
  * 
  * 4. Admin Features:
  *    - /admin command and admin panel access
@@ -30,6 +31,12 @@
  *    - Support message routing and handling
  *    - User statistics and management
  *    - Comprehensive user database with persistent storage
+ * 
+ * 5. AI API System:
+ *    - Primary APIs: GiftedTech AI endpoints (5 different models)
+ *    - Fallback API: Google Gemini API (requires GOOGLE_API_KEY env var)
+ *    - All responses maintain Cool Shot AI branding and identity
+ *    - Comprehensive text replacement to maintain brand consistency
  */
 
 const { Telegraf } = require('telegraf');
@@ -38,6 +45,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs-extra');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 const app = express();
@@ -326,6 +334,56 @@ const aiAPIs = [
   'https://api.giftedtech.co.ke/api/ai/ai'
 ];
 
+// Google Gemini API Configuration
+let geminiAI = null;
+try {
+  if (process.env.GOOGLE_API_KEY) {
+    geminiAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+    console.log('🤖 Google Gemini API initialized as fallback');
+  }
+} catch (error) {
+  console.log('⚠️ Google Gemini API not available:', error.message);
+}
+
+// Google Gemini API fallback function
+async function callGeminiAPI(prompt, role, lang) {
+  if (!geminiAI) {
+    throw new Error('Google Gemini API not configured');
+  }
+  
+  try {
+    const model = geminiAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    // Create a comprehensive prompt that maintains Cool Shot AI identity
+    const systemPrompt = `You are Cool Shot AI, an intelligent assistant developed by Cool Shot Systems. 
+You are currently operating in ${role} mode. Respond in a helpful, professional manner.
+Your name is Cool Shot AI and you were created by Cool Shot Systems.
+Never mention Google, Gemini, or any other AI provider names.
+Always maintain the Cool Shot AI identity and branding.
+
+User Query: ${prompt}`;
+    
+    const result = await model.generateContent(systemPrompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    if (text && text.trim()) {
+      return {
+        result: text
+          .replace(/Google|Gemini|Bard|I'm an AI assistant|I'm a large language model/gi, "I'm Cool Shot AI")
+          .replace(/I was (created|developed|made|built) by Google/gi, "I was created by Cool Shot Systems")
+          .replace(/Google AI|Google's AI|Gemini AI/gi, "Cool Shot AI")
+          .replace(/I'm here to help/gi, "I'm Cool Shot AI, here to help")
+          .trim()
+      };
+    }
+    throw new Error('Empty response from Gemini');
+  } catch (error) {
+    console.error('❌ Google Gemini API Error:', error.message);
+    throw error;
+  }
+}
+
 // ========== Support Query Flow State ==========
 let supportState = {};
 
@@ -452,6 +510,52 @@ bot.on('text', async (ctx, next) => {
     } catch (err) {
       console.error('❌ AI Request Failed:', err.message);
     }
+  }
+  
+  // If all APIs failed, try Google Gemini as fallback
+  if (response.includes("Sorry, I couldn't generate a reply") && geminiAI) {
+    try {
+      console.log('🔄 Trying Google Gemini API as fallback...');
+      const geminiResponse = await callGeminiAPI(ctx.message.text, role, lang);
+      
+      if (geminiResponse.result) {
+        const cleaned = escapeMarkdownV2(
+          geminiResponse.result
+            .replace(/Google|Gemini|Bard/gi, 'Cool Shot AI')
+            .replace(/I'm an AI assistant|I'm a large language model/gi, "I'm Cool Shot AI, your intelligent assistant")
+            .replace(/I was (created|developed|made|built) by Google/gi, "I was created by Cool Shot Systems")
+            .replace(/Google AI|Google's AI|Gemini AI/gi, "Cool Shot AI")
+            .replace(/[""]/g, '"')
+        );
+        
+        // Beautiful response formatting
+        const roleLabel = roles.includes(role) ? role : 'Brain Master';
+        const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
+        
+        response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\\n` +
+                  `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\\n\\n` +
+                  `${cleaned}\\n\\n` +
+                  `✨ _Powered by Cool Shot Systems_`;
+        console.log('✅ Google Gemini API response successful');
+      }
+    } catch (err) {
+      console.error('❌ Google Gemini API Failed:', err.message);
+    }
+  }
+  
+  // If still no response, show enhanced fallback message
+  if (response.includes("Sorry, I couldn't generate a reply")) {
+    const roleLabel = roles.includes(role) ? role : 'Brain Master';
+    const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
+    
+    response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\\n` +
+              `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\\n\\n` +
+              `⚠️ I'm currently experiencing technical difficulties with my AI processing\\. Please try again in a moment\\!\\n\\n` +
+              `💡 In the meantime, you can:\\n` +
+              `• Use /games for entertainment\\n` +
+              `• Use /tools for text utilities\\n` +
+              `• Use /help for command list\\n\\n` +
+              `✨ _Cool Shot Systems \\- Always here to help_`;
   }
   ctx.replyWithMarkdownV2(response);
 });
@@ -605,6 +709,53 @@ bot.command('admininfo', async (ctx) => {
   ctx.replyWithMarkdownV2(message.replace(/([_*[\]()~`>#+=|{}.!-])/g, '\\$1'));
 });
 
+// API Status Command (Admin only)
+bot.command('apistatus', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('apistatus', ctx.from.id);
+  
+  if (!isAdmin(ctx.from.id)) {
+    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can check API status\\.');
+  }
+  
+  let message = `🔧 *AI API Status Dashboard*\\n\\n`;
+  
+  // Check primary APIs
+  message += `🎯 **Primary APIs \\(${aiAPIs.length}\\):**\\n`;
+  for (let i = 0; i < aiAPIs.length; i++) {
+    const url = aiAPIs[i];
+    const apiName = url.includes('gpt4o') ? 'GPT-4o' : 
+                   url.includes('geminiaipro') ? 'Gemini Pro' :
+                   url.includes('meta-llama') ? 'Meta Llama' :
+                   url.includes('copilot') ? 'Copilot' :
+                   `API ${i + 1}`;
+    message += `${i + 1}\\. ${escapeMarkdownV2(apiName)} \\- GiftedTech\\n`;
+  }
+  
+  // Check Google Gemini status
+  message += `\\n🤖 **Fallback API:**\\n`;
+  if (geminiAI) {
+    message += `✅ Google Gemini \\- *Configured & Ready*\\n`;
+  } else {
+    message += `⚠️ Google Gemini \\- *Not Configured*\\n`;
+    message += `💡 Set GOOGLE\\_API\\_KEY environment variable to enable\\n`;
+  }
+  
+  message += `\\n📊 **API Flow:**\\n`;
+  message += `1\\. Try all ${aiAPIs.length} primary APIs sequentially\\n`;
+  message += `2\\. If all fail, use Google Gemini fallback\\n`;
+  message += `3\\. If still no response, show enhanced error message\\n\\n`;
+  
+  message += `🛡️ **Brand Protection:**\\n`;
+  message += `• All responses maintain Cool Shot AI identity\\n`;
+  message += `• Comprehensive text replacement ensures consistency\\n`;
+  message += `• No external provider names leak through\\n\\n`;
+  
+  message += `✨ _Cool Shot Systems API Management_`;
+  
+  ctx.replyWithMarkdownV2(message);
+});
+
 // Users List Command (RayBen only)
 bot.command('users', async (ctx) => {
   await updateUserInfo(ctx);
@@ -735,7 +886,8 @@ bot.command('admin', async (ctx) => {
     [{ text: '📢 Broadcast Message', callback_data: 'admin_broadcast' }],
     [{ text: '🆘 Support Requests', callback_data: 'admin_support' }],
     [{ text: '⚡ Command Stats', callback_data: 'admin_commands' }],
-    [{ text: '👑 Top Users', callback_data: 'admin_topusers' }]
+    [{ text: '👑 Top Users', callback_data: 'admin_topusers' }],
+    [{ text: '🔧 API Status', callback_data: 'admin_api_status' }]
   ];
   
   // Add user management buttons for RayBen445
@@ -1522,7 +1674,8 @@ bot.on('callback_query', async (ctx) => {
     const buttons = [
       [{ text: '📊 View Stats', callback_data: 'admin_stats' }],
       [{ text: '📢 Broadcast Message', callback_data: 'admin_broadcast' }],
-      [{ text: '🆘 Support Requests', callback_data: 'admin_support' }]
+      [{ text: '🆘 Support Requests', callback_data: 'admin_support' }],
+      [{ text: '🔧 API Status', callback_data: 'admin_api_status' }]
     ];
     
     // Add user management for RayBen445
@@ -1722,6 +1875,45 @@ bot.on('callback_query', async (ctx) => {
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery('📊 Full analytics loaded');
+  }
+  else if (data === 'admin_api_status') {
+    let message = `🔧 *AI API Status Dashboard*\\n\\n`;
+    
+    // Check primary APIs
+    message += `🎯 **Primary APIs \\(${aiAPIs.length}\\):**\\n`;
+    for (let i = 0; i < aiAPIs.length; i++) {
+      const url = aiAPIs[i];
+      const apiName = url.includes('gpt4o') ? 'GPT\\-4o' : 
+                     url.includes('geminiaipro') ? 'Gemini Pro' :
+                     url.includes('meta-llama') ? 'Meta Llama' :
+                     url.includes('copilot') ? 'Copilot' :
+                     `API ${i + 1}`;
+      message += `${i + 1}\\. ${apiName} \\- GiftedTech\\n`;
+    }
+    
+    // Check Google Gemini status
+    message += `\\n🤖 **Fallback API:**\\n`;
+    if (geminiAI) {
+      message += `✅ Google Gemini \\- *Configured & Ready*\\n`;
+    } else {
+      message += `⚠️ Google Gemini \\- *Not Configured*\\n`;
+      message += `💡 Set GOOGLE\\_API\\_KEY to enable fallback\\n`;
+    }
+    
+    message += `\\n📊 **API Flow:**\\n`;
+    message += `1\\. Try all ${aiAPIs.length} primary APIs sequentially\\n`;
+    message += `2\\. If all fail, use Google Gemini fallback\\n`;
+    message += `3\\. If still no response, show helpful error\\n\\n`;
+    
+    message += `🛡️ **Brand Protection:**\\n`;
+    message += `• All responses maintain Cool Shot AI identity\\n`;
+    message += `• Comprehensive text replacement active\\n`;
+    message += `• No external provider names visible\\n\\n`;
+    
+    message += `✨ _Cool Shot Systems API Management_`;
+    
+    await ctx.editMessageText(message, { parse_mode: 'MarkdownV2' });
+    ctx.answerCbQuery('🔧 API status loaded');
   }
 });
 
