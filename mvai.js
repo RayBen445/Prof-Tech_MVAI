@@ -1590,44 +1590,46 @@ bot.command('translate', async (ctx) => {
   // Show typing indicator
   await ctx.sendChatAction('typing');
   
-  // Create translation prompt
-  const translationPrompt = `Translate the following text to ${targetLanguage.label.split(' ')[1]}: "${textToTranslate}". Only provide the translation, no explanations or additional text.`;
-  
   let translationResult = null;
   
-  // Try AI APIs for translation
-  for (let url of aiAPIs) {
+  // Try Google Gemini API for translation (Google's AI service for translation)
+  if (geminiAI) {
     try {
-      const { data } = await axios.get(url, {
-        params: {
-          apikey: process.env.AI_API_KEY || 'gifted',
-          q: translationPrompt,
-          lang: targetLangCode
-        }
-      });
-      
-      if (data && data.gifteddevs && data.gifteddevs.trim()) {
-        translationResult = data.gifteddevs.trim();
-        console.log('✅ AI API translation successful');
-        break;
-      }
-    } catch (err) {
-      console.error('❌ AI API translation failed:', err.message);
-      continue;
-    }
-  }
-  
-  // Try Google Gemini as fallback
-  if (!translationResult && geminiAI) {
-    try {
-      console.log('🔄 Trying Google Gemini API for translation...');
+      console.log('🔄 Using Google Translate (Gemini AI)...');
+      const translationPrompt = `Translate the following text to ${targetLanguage.label.split(' ')[1]}: "${textToTranslate}". Only provide the translation, no explanations or additional text.`;
       const model = geminiAI.getGenerativeModel({ model: 'gemini-pro' });
       const result = await model.generateContent(translationPrompt);
       const response = await result.response;
       translationResult = response.text();
-      console.log('✅ Google Gemini translation successful');
+      console.log('✅ Google Translate (Gemini AI) successful');
     } catch (err) {
-      console.error('❌ Google Gemini translation failed:', err.message);
+      console.error('❌ Google Translate (Gemini AI) failed:', err.message);
+    }
+  }
+  
+  // Try AI APIs as additional fallback
+  if (!translationResult) {
+    console.log('🔄 Trying additional AI APIs as fallback...');
+    for (let url of aiAPIs) {
+      try {
+        const translationPrompt = `Translate the following text to ${targetLanguage.label.split(' ')[1]}: "${textToTranslate}". Only provide the translation, no explanations or additional text.`;
+        const { data } = await axios.get(url, {
+          params: {
+            apikey: process.env.AI_API_KEY || 'gifted',
+            q: translationPrompt,
+            lang: targetLangCode
+          }
+        });
+        
+        if (data && data.gifteddevs && data.gifteddevs.trim()) {
+          translationResult = data.gifteddevs.trim();
+          console.log('✅ AI API fallback translation successful');
+          break;
+        }
+      } catch (err) {
+        console.error('❌ AI API fallback translation failed:', err.message);
+        continue;
+      }
     }
   }
   
@@ -1637,7 +1639,7 @@ bot.command('translate', async (ctx) => {
       `📝 *Original:* ${escapeMarkdownV2(textToTranslate)}\\n` +
       `🔤 *Language:* ${escapeMarkdownV2(targetLanguage.label)}\\n` +
       `✨ *Translation:* ${escapeMarkdownV2(translationResult)}\\n\\n` +
-      `🤖 _Translated by Cool Shot AI_`
+      `🤖 _Powered by Google Translate_`
     );
   } else {
     ctx.replyWithMarkdownV2(
