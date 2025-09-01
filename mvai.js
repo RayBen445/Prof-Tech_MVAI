@@ -1558,9 +1558,11 @@ bot.on('callback_query', async (ctx) => {
     const role = data.replace('role_', '');
     userRoles[userId] = role;
     await ctx.editMessageText(
-      `🧠 *Role Updated Successfully*\\n\\n` +
-      `✅ Your new expert role: *${escapeMarkdownV2(role)}*\\n\\n` +
-      `🚀 AI responses will now be tailored to this expertise\\!`, 
+      escapeMarkdownV2(
+        `🧠 *Role Updated Successfully*\n\n` +
+        `✅ Your new expert role: *${role}*\n\n` +
+        `🚀 AI responses will now be tailored to this expertise!`
+      ), 
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery(`🎯 Role set to ${role}`);
@@ -1571,16 +1573,18 @@ bot.on('callback_query', async (ctx) => {
     userLanguages[userId] = lang;
     const label = languages.find(l => l.code === lang)?.label || lang;
     await ctx.editMessageText(
-      `🌍 *Language Updated Successfully*\\n\\n` +
-      `✅ Your new language: ${escapeMarkdownV2(label)}\\n\\n` +
-      `🗣️ AI responses will now be in your selected language\\!`, 
+      escapeMarkdownV2(
+        `🌍 *Language Updated Successfully*\n\n` +
+        `✅ Your new language: ${label}\n\n` +
+        `🗣️ AI responses will now be in your selected language!`
+      ), 
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery(`🌐 Language set to ${label}`);
   }
   // Quick Buttons
   else if (data === 'show_role') {
-    await ctx.editMessageText('🧠 *Choose Your Expert Role*\\n\\n💡 Select a role to customize AI responses:', {
+    await ctx.editMessageText(escapeMarkdownV2('🧠 *Choose Your Expert Role*\n\n💡 Select a role to customize AI responses:'), {
       reply_markup: {
         inline_keyboard: chunkArray(roles, 4).map(row =>
           row.map(r => ({ text: r, callback_data: `role_${r}` }))
@@ -1591,7 +1595,7 @@ bot.on('callback_query', async (ctx) => {
     ctx.answerCbQuery();
   }
   else if (data === 'show_lang') {
-    await ctx.editMessageText('🌍 *Choose Your Language*\\n\\n🗣️ Select your preferred language for responses:', {
+    await ctx.editMessageText(escapeMarkdownV2('🌍 *Choose Your Language*\n\n🗣️ Select your preferred language for responses:'), {
       reply_markup: {
         inline_keyboard: chunkArray(languages, 3).map(row =>
           row.map(l => ({ text: l.label, callback_data: `lang_${l.code}` }))
@@ -1603,9 +1607,11 @@ bot.on('callback_query', async (ctx) => {
   }
   else if (data === 'show_about') {
     await ctx.editMessageText(
-      "ℹ️ *About Cool Shot AI*\\n\\n" +
-      "🤖 Developed by *Cool Shot Systems*\\n💡 Multi-role intelligent assistant powered by AI endpoints\\n🌐 15+ languages supported\\n🧠 100+ Knowledge Roles\\n\\n" +
-      "🎓 Use /role and /lang\\n🛠️ Use /buttons for quick settings\\n🔄 Use /reset to reset settings\\n🆘 Use /support <your message> for support",
+      escapeMarkdownV2(
+        "ℹ️ *About Cool Shot AI*\n\n" +
+        "🤖 Developed by *Cool Shot Systems*\n💡 Multi-role intelligent assistant powered by AI endpoints\n🌐 15+ languages supported\n🧠 100+ Knowledge Roles\n\n" +
+        "🎓 Use /role and /lang\n🛠️ Use /buttons for quick settings\n🔄 Use /reset to reset settings\n🆘 Use /support <your message> for support"
+      ),
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery();
@@ -1614,10 +1620,12 @@ bot.on('callback_query', async (ctx) => {
     delete userRoles[userId];
     delete userLanguages[userId];
     await ctx.editMessageText(
-      '🔄 *Settings Reset Complete*\\n\\n' +
-      '✅ Role: Default \\(Brain Master\\)\\n' +
-      '✅ Language: Default \\(English\\)\\n\\n' +
-      '💡 Use /role and /lang to customize again\\!',
+      escapeMarkdownV2(
+        '🔄 *Settings Reset Complete*\n\n' +
+        '✅ Role: Default (Brain Master)\n' +
+        '✅ Language: Default (English)\n\n' +
+        '💡 Use /role and /lang to customize again!'
+      ),
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery('✨ Settings reset successfully!');
@@ -1626,21 +1634,25 @@ bot.on('callback_query', async (ctx) => {
     supportState[userId] = true;
     await ctx.answerCbQuery('🆘 Support mode activated!');
     await ctx.editMessageText(
-      '🆘 *Support Request Mode*\\n\\n' +
-      '💬 Please type your support query\\. Your message will be sent directly to our admin team\\!\\n\\n' +
-      '⚡ *Response Time:* Typically within a few hours',
+      escapeMarkdownV2(
+        '🆘 *Support Request Mode*\n\n' +
+        '💬 Please type your support query. Your message will be sent directly to our admin team!\n\n' +
+        '⚡ *Response Time:* Typically within a few hours'
+      ),
       { parse_mode: 'MarkdownV2' }
     );
   }
   else if (data === 'ping_cmd') {
     await ctx.answerCbQuery('🏓 System online!');
-    await ctx.editMessageText('🏓 *Cool Shot AI Status: ONLINE*\\n\\n✅ All systems operational\\!', { parse_mode: 'MarkdownV2' });
+    await ctx.editMessageText(escapeMarkdownV2('🏓 *Cool Shot AI Status: ONLINE*\n\n✅ All systems operational!'), { parse_mode: 'MarkdownV2' });
   }
   else if (data === 'help_cmd') {
     await ctx.answerCbQuery();
     await ctx.replyWithMarkdownV2(
-      "🆘 *Cool Shot AI Help*\\n\\n" +
-      "• Use /start to see welcome\\n• /role to pick your expert mode\\n• /lang for language\\n• /about for info\\n• /reset for a fresh start\\n• /buttons for quick menu\\n• /games for fun activities\\n• /tools for text utilities\\n• /stats for bot statistics\\n• /support <your message> if you need help\\n• /ping to check bot status"
+      escapeMarkdownV2(
+        "🆘 *Cool Shot AI Help*\n\n" +
+        "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+      )
     );
   }
   // New feature callbacks
