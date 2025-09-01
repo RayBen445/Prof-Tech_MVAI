@@ -59,7 +59,16 @@ let USER_IDS = new Set(); // Track user IDs for broadcast
 
 // Persistent user data storage
 const USERS_FILE = './users.json';
+const ANALYTICS_FILE = './analytics.json';
 let users = {}; // { userId: { id, username, firstName, lastName, isAdmin, firstSeen, lastSeen } }
+let analytics = {
+  botStartTime: new Date().toISOString(),
+  commandStats: {},
+  dailyStats: {},
+  userActivity: {},
+  totalMessages: 0,
+  totalCommands: 0
+};
 
 // Load users from file
 async function loadUsers() {
@@ -82,6 +91,58 @@ async function saveUsers() {
   }
 }
 
+// Load analytics from file
+async function loadAnalytics() {
+  try {
+    if (await fs.pathExists(ANALYTICS_FILE)) {
+      const stored = await fs.readJson(ANALYTICS_FILE);
+      analytics = { ...analytics, ...stored };
+      console.log('📊 Analytics data loaded');
+    }
+  } catch (error) {
+    console.error('❌ Error loading analytics:', error.message);
+  }
+}
+
+// Save analytics to file
+async function saveAnalytics() {
+  try {
+    await fs.writeJson(ANALYTICS_FILE, analytics, { spaces: 2 });
+  } catch (error) {
+    console.error('❌ Error saving analytics:', error.message);
+  }
+}
+
+// Track command usage
+async function trackCommand(command, userId) {
+  analytics.totalCommands++;
+  if (!analytics.commandStats[command]) {
+    analytics.commandStats[command] = 0;
+  }
+  analytics.commandStats[command]++;
+  
+  // Track user activity
+  const userIdStr = userId.toString();
+  if (!analytics.userActivity[userIdStr]) {
+    analytics.userActivity[userIdStr] = { commands: 0, messages: 0 };
+  }
+  analytics.userActivity[userIdStr].commands++;
+  
+  await saveAnalytics();
+}
+
+// Track message
+async function trackMessage(userId) {
+  analytics.totalMessages++;
+  const userIdStr = userId.toString();
+  if (!analytics.userActivity[userIdStr]) {
+    analytics.userActivity[userIdStr] = { commands: 0, messages: 0 };
+  }
+  analytics.userActivity[userIdStr].messages++;
+  
+  await saveAnalytics();
+}
+
 // Update user information
 async function updateUserInfo(ctx) {
   const userId = ctx.from.id.toString();
@@ -96,7 +157,10 @@ async function updateUserInfo(ctx) {
       lastName: ctx.from.last_name || null,
       isAdmin: false,
       firstSeen: now,
-      lastSeen: now
+      lastSeen: now,
+      messageCount: 0,
+      commandCount: 0,
+      notes: '' // Admin notes about user
     };
     console.log(`👤 New user registered: ${ctx.from.first_name || 'Unknown'} (@${ctx.from.username || 'no_username'}) - ID: ${ctx.from.id}`);
   } else {
@@ -187,6 +251,7 @@ async function demoteAdmin(userId, demotedBy) {
 // Initialize admin system
 async function initializeAdminSystem() {
   await loadUsers();
+  await loadAnalytics();
   
   // Ensure RayBen445 is always an admin
   const raybenIdStr = RAYBEN_ID.toString();
@@ -198,7 +263,10 @@ async function initializeAdminSystem() {
       lastName: null,
       isAdmin: true,
       firstSeen: new Date().toISOString(),
-      lastSeen: new Date().toISOString()
+      lastSeen: new Date().toISOString(),
+      messageCount: 0,
+      commandCount: 0,
+      notes: 'Primary Admin - Creator of Cool Shot AI'
     };
     await saveUsers();
     console.log('🛡️ RayBen445 initialized as primary admin');
@@ -263,8 +331,9 @@ let supportState = {};
 
 // ========== Main Text Handler ==========
 bot.on('text', async (ctx, next) => {
-  // Update user information
+  // Update user information and track activity
   await updateUserInfo(ctx);
+  await trackMessage(ctx.from.id);
 
   // Support query logic
   if (supportState[ctx.from.id]) {
@@ -392,17 +461,19 @@ bot.on('text', async (ctx, next) => {
 // Start Command
 bot.start(async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('start', ctx.from.id);
   ctx.replyWithMarkdownV2(
     "👋 *Hello, I'm Cool Shot AI!*\\n\\n" +
     "🤖 Developed by *Cool Shot Systems*, your intelligent assistant is now online!\\n\\n" +
     "💡 Ask me anything:\\n🧮 Math | 💊 Health | 💻 Tech | 🎭 Creativity\\n\\n" +
-    "🎓 Use /role to switch brain mode\\n🌐 Use /lang to choose language\\n🛠️ Use /buttons for quick menu\\n🔄 Use /reset to reset settings\\n🆘 Use /support <your message> for support\\n🚀 Let's go!"
+    "🎓 Use /role to switch brain mode\\n🌐 Use /lang to choose language\\n🛠️ Use /buttons for quick menu\\n🔄 Use /reset to reset settings\\n🎮 Use /games for fun activities\\n🆘 Use /support <your message> for support\\n🚀 Let's go!"
   );
 });
 
 // About Command
 bot.command('about', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('about', ctx.from.id);
   ctx.replyWithMarkdownV2(
     "ℹ️ *About Cool Shot AI*\\n\\n" +
     "🤖 Developed by *Cool Shot Systems*\\n💡 Multi-role intelligent assistant powered by AI endpoints\\n🌐 15+ languages supported\\n🧠 100+ Knowledge Roles\\n\\n" +
@@ -413,15 +484,17 @@ bot.command('about', async (ctx) => {
 // Help Command
 bot.command('help', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('help', ctx.from.id);
   ctx.replyWithMarkdownV2(
     "🆘 *Cool Shot AI Help*\\n\\n" +
-    "• Use /start to see welcome\\n• /role to pick your expert mode\\n• /lang for language\\n• /about for info\\n• /reset for a fresh start\\n• /buttons for quick menu\\n• /support <your message> if you need help\\n• /ping to check bot status"
+    "• Use /start to see welcome\\n• /role to pick your expert mode\\n• /lang for language\\n• /about for info\\n• /reset for a fresh start\\n• /buttons for quick menu\\n• /games for fun activities\\n• /tools for text utilities\\n• /stats for bot statistics\\n• /support <your message> if you need help\\n• /ping to check bot status"
   );
 });
 
 // Support Command
 bot.command('support', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('support', ctx.from.id);
   ctx.replyWithMarkdownV2(
     "🆘 *Cool Shot AI Support Center*\\n\\n" +
     "💌 *Contact Options:*\\n" +
@@ -435,12 +508,14 @@ bot.command('support', async (ctx) => {
 // Ping Command for Telegram
 bot.command('ping', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('ping', ctx.from.id);
   ctx.replyWithMarkdownV2('🏓 *Cool Shot AI Status: ONLINE*\\n\\n✅ All systems operational\\!');
 });
 
 // Reset Command
 bot.command('reset', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('reset', ctx.from.id);
   const userId = ctx.from.id;
   delete userRoles[userId];
   delete userLanguages[userId];
@@ -455,6 +530,7 @@ bot.command('reset', async (ctx) => {
 // Role Selection
 bot.command('role', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('role', ctx.from.id);
   ctx.replyWithMarkdownV2('🧠 *Choose Your Expert Role*\\n\\n💡 Select a role to customize AI responses:', {
     reply_markup: {
       inline_keyboard: chunkArray(roles, 4).map(row =>
@@ -467,6 +543,7 @@ bot.command('role', async (ctx) => {
 // Language Selection
 bot.command('lang', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('lang', ctx.from.id);
   ctx.replyWithMarkdownV2('🌍 *Choose Your Language*\\n\\n🗣️ Select your preferred language for responses:', {
     reply_markup: {
       inline_keyboard: chunkArray(languages, 3).map(row =>
@@ -479,6 +556,7 @@ bot.command('lang', async (ctx) => {
 // Quick Buttons
 bot.command('buttons', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('buttons', ctx.from.id);
   ctx.replyWithMarkdownV2('⚙️ *Quick Settings Menu*\\n\\n🚀 Choose an action below:', {
     reply_markup: {
       inline_keyboard: [
@@ -488,6 +566,9 @@ bot.command('buttons', async (ctx) => {
         [{ text: '🔄 Reset Settings', callback_data: 'do_reset' }],
         [{ text: '🆘 Get Support', callback_data: 'start_support' }],
         [{ text: '🛡️ Admin Panel', callback_data: 'show_admin' }],
+        [{ text: '🎮 Games & Fun', callback_data: 'show_games' }],
+        [{ text: '🛠️ Text Tools', callback_data: 'show_tools' }],
+        [{ text: '📊 Bot Stats', callback_data: 'show_stats' }],
         [{ text: '🏓 System Status', callback_data: 'ping_cmd' }],
         [{ text: '📚 Help Guide', callback_data: 'help_cmd' }]
       ]
@@ -498,6 +579,7 @@ bot.command('buttons', async (ctx) => {
 // Admin Info Command (for troubleshooting and setup)
 bot.command('admininfo', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('admininfo', ctx.from.id);
   
   const isCurrentUserAdmin = isAdmin(ctx.from.id);
   const adminUsers = getAdminUsers();
@@ -526,6 +608,7 @@ bot.command('admininfo', async (ctx) => {
 // Users List Command (RayBen only)
 bot.command('users', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('users', ctx.from.id);
   
   if (!isRayBen(ctx.from.id)) {
     return ctx.reply('⛔️ Only RayBen445 can view the user list.');
@@ -560,6 +643,7 @@ bot.command('users', async (ctx) => {
   
   message += `\n💡 Use /promote <user_id> to promote a user to admin`;
   message += `\n💡 Use /demote <user_id> to demote an admin`;
+  message += `\n📝 Use /note <user_id> <note> to add notes`;
   
   ctx.replyWithMarkdownV2(message.replace(/([_*[\]()~`>#+=|{}.!-])/g, '\\$1'));
 });
@@ -567,6 +651,7 @@ bot.command('users', async (ctx) => {
 // Promote User Command (RayBen only)
 bot.command('promote', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('promote', ctx.from.id);
   
   if (!isRayBen(ctx.from.id)) {
     return ctx.reply('⛔️ Only RayBen445 can promote users to admin.');
@@ -603,6 +688,7 @@ bot.command('promote', async (ctx) => {
 // Demote Admin Command (RayBen only)
 bot.command('demote', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('demote', ctx.from.id);
   
   if (!isRayBen(ctx.from.id)) {
     return ctx.reply('⛔️ Only RayBen445 can demote admins.');
@@ -639,6 +725,7 @@ bot.command('demote', async (ctx) => {
 // Admin Panel Command
 bot.command('admin', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('admin', ctx.from.id);
   if (!isAdmin(ctx.from.id)) {
     return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\n🛡️ This command is reserved for administrators only\\.');
   }
@@ -646,12 +733,15 @@ bot.command('admin', async (ctx) => {
   const buttons = [
     [{ text: '📊 View Stats', callback_data: 'admin_stats' }],
     [{ text: '📢 Broadcast Message', callback_data: 'admin_broadcast' }],
-    [{ text: '🆘 Support Requests', callback_data: 'admin_support' }]
+    [{ text: '🆘 Support Requests', callback_data: 'admin_support' }],
+    [{ text: '⚡ Command Stats', callback_data: 'admin_commands' }],
+    [{ text: '👑 Top Users', callback_data: 'admin_topusers' }]
   ];
   
   // Add user management buttons for RayBen445
   if (isRayBen(ctx.from.id)) {
     buttons.push([{ text: '👥 Manage Users', callback_data: 'admin_users' }]);
+    buttons.push([{ text: '📊 Full Analytics', callback_data: 'admin_analytics' }]);
   }
 
   ctx.replyWithMarkdownV2('🛡️ *Admin Control Panel*\\n\\n✨ Welcome to the administrative dashboard\\!', {
@@ -664,6 +754,7 @@ bot.command('admin', async (ctx) => {
 // Unknown Command Handler (catch-all)
 bot.command('*', async (ctx) => {
   await updateUserInfo(ctx);
+  await trackCommand('unknown', ctx.from.id);
   const command = ctx.message.text.split(' ')[0];
   ctx.replyWithMarkdownV2(
     `❓ *Unknown Command*\\n\\n` +
@@ -672,9 +763,591 @@ bot.command('*', async (ctx) => {
     `• /help \\- View all commands\\n` +
     `• /about \\- Learn about Cool Shot AI\\n` +
     `• /buttons \\- Quick action menu\\n` +
+    `• /games \\- Fun activities\\n` +
+    `• /tools \\- Text utilities\\n` +
     `• /start \\- Welcome message\\n\\n` +
     `💡 *Tip:* Use /help to see the complete command list\\!`
   );
+});
+
+// ========== NEW NON-API FEATURES ==========
+
+// Bot Analytics Dashboard (Admin Only)
+bot.command('analytics', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('analytics', ctx.from.id);
+  
+  if (!isAdmin(ctx.from.id)) {
+    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view analytics\\.');
+  }
+  
+  const uptime = Math.floor((Date.now() - new Date(analytics.botStartTime)) / (1000 * 60 * 60 * 24));
+  const totalUsers = Object.keys(users).length;
+  const activeToday = Object.values(users).filter(u => {
+    const lastSeen = new Date(u.lastSeen);
+    const today = new Date();
+    return lastSeen.toDateString() === today.toDateString();
+  }).length;
+  
+  // Top commands
+  const topCommands = Object.entries(analytics.commandStats)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 5)
+    .map(([cmd, count], i) => `${i + 1}\\. /${escapeMarkdownV2(cmd)} \\(${count} uses\\)`)
+    .join('\\n');
+  
+  // Most active users
+  const topUsers = Object.entries(analytics.userActivity)
+    .sort(([,a], [,b]) => (b.messages + b.commands) - (a.messages + a.commands))
+    .slice(0, 5)
+    .map(([userId, activity], i) => {
+      const user = users[userId];
+      const name = user ? (user.firstName || 'Unknown') : 'Unknown';
+      const total = activity.messages + activity.commands;
+      return `${i + 1}\\. ${escapeMarkdownV2(name)} \\(${total} interactions\\)`;
+    })
+    .join('\\n');
+
+  ctx.replyWithMarkdownV2(
+    `📊 *Bot Analytics Dashboard*\\n\\n` +
+    `⏰ **Uptime:** ${uptime} days\\n` +
+    `👥 **Total Users:** ${totalUsers}\\n` +
+    `🎯 **Active Today:** ${activeToday}\\n` +
+    `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
+    `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
+    `🏆 **Top Commands:**\\n${topCommands || 'No data'}\\n\\n` +
+    `👑 **Most Active Users:**\\n${topUsers || 'No data'}\\n\\n` +
+    `✨ _Analytics powered by Cool Shot Systems_`
+  );
+});
+
+// User Activity Command (Admin Only)
+bot.command('activity', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('activity', ctx.from.id);
+  
+  if (!isAdmin(ctx.from.id)) {
+    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view user activity\\.');
+  }
+  
+  const args = ctx.message.text.split(' ');
+  if (args.length === 2) {
+    // Show specific user activity
+    const targetUserId = args[1];
+    const user = users[targetUserId];
+    const activity = analytics.userActivity[targetUserId];
+    
+    if (!user) {
+      return ctx.reply('❌ User not found in database.');
+    }
+    
+    const totalActivity = activity ? (activity.messages + activity.commands) : 0;
+    const messages = activity ? activity.messages : 0;
+    const commands = activity ? activity.commands : 0;
+    
+    ctx.replyWithMarkdownV2(
+      `👤 *User Activity Report*\\n\\n` +
+      `📛 **Name:** ${escapeMarkdownV2(user.firstName || 'Unknown')}\\n` +
+      `🆔 **ID:** \`${user.id}\`\\n` +
+      `👤 **Username:** ${user.username ? `@${escapeMarkdownV2(user.username)}` : 'No username'}\\n` +
+      `🛡️ **Admin:** ${user.isAdmin ? '✅ Yes' : '❌ No'}\\n\\n` +
+      `📊 **Activity Stats:**\\n` +
+      `💬 Messages: ${messages}\\n` +
+      `⚡ Commands: ${commands}\\n` +
+      `🎯 Total: ${totalActivity}\\n\\n` +
+      `📅 **Dates:**\\n` +
+      `🆕 First Seen: ${escapeMarkdownV2(new Date(user.firstSeen).toLocaleDateString())}\\n` +
+      `👁️ Last Seen: ${escapeMarkdownV2(new Date(user.lastSeen).toLocaleDateString())}\\n\\n` +
+      `📝 **Notes:** ${escapeMarkdownV2(user.notes || 'No notes')}`
+    );
+  } else {
+    // Show general activity overview
+    const recentUsers = Object.values(users)
+      .filter(u => {
+        const lastSeen = new Date(u.lastSeen);
+        const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+        return lastSeen > threeDaysAgo;
+      })
+      .sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen))
+      .slice(0, 10);
+    
+    let message = `📈 *Recent User Activity*\\n\\n`;
+    message += `🎯 **Active in last 3 days:** ${recentUsers.length}\\n\\n`;
+    
+    recentUsers.forEach((user, i) => {
+      const name = user.firstName || 'Unknown';
+      const username = user.username ? `@${user.username}` : 'No username';
+      const isAdminBadge = user.isAdmin ? ' 🛡️' : '';
+      message += `${i + 1}\\. ${escapeMarkdownV2(name)} \\(${escapeMarkdownV2(username)}\\)${isAdminBadge}\\n`;
+    });
+    
+    message += `\\n💡 Use \`/activity <user_id>\` for detailed user stats`;
+    
+    ctx.replyWithMarkdownV2(message);
+  }
+});
+
+// User Notes Management (RayBen445 Only)
+bot.command('note', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('note', ctx.from.id);
+  
+  if (!isRayBen(ctx.from.id)) {
+    return ctx.reply('⛔️ Only RayBen445 can manage user notes.');
+  }
+  
+  const args = ctx.message.text.split(' ');
+  if (args.length < 3) {
+    return ctx.reply('Usage: /note <user_id> <note_text>\nExample: /note 123456789 Frequent user, very helpful');
+  }
+  
+  const targetUserId = args[1];
+  const noteText = args.slice(2).join(' ');
+  
+  if (!users[targetUserId]) {
+    return ctx.reply('❌ User not found in database.');
+  }
+  
+  users[targetUserId].notes = noteText;
+  await saveUsers();
+  
+  const userName = users[targetUserId].firstName || 'Unknown User';
+  ctx.reply(`✅ Note added for ${userName} (ID: ${targetUserId})\n📝 "${noteText}"`);
+});
+
+// Text Utilities Commands
+bot.command('tools', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('tools', ctx.from.id);
+  
+  ctx.replyWithMarkdownV2(
+    '🛠️ *Text Utilities Toolkit*\\n\\n' +
+    '📝 **Available Tools:**\\n' +
+    '• `/count <text>` \\- Count words and characters\\n' +
+    '• `/reverse <text>` \\- Reverse text\\n' +
+    '• `/upper <text>` \\- Convert to UPPERCASE\\n' +
+    '• `/lower <text>` \\- Convert to lowercase\\n' +
+    '• `/title <text>` \\- Convert To Title Case\\n' +
+    '• `/encode <text>` \\- Base64 encode text\\n' +
+    '• `/decode <text>` \\- Base64 decode text\\n\\n' +
+    '💡 *Example:* `/count Hello World` will show character and word count'
+  );
+});
+
+bot.command('count', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('count', ctx.from.id);
+  
+  const text = ctx.message.text.replace('/count ', '');
+  if (!text || text === '/count') {
+    return ctx.reply('Usage: /count <text>\nExample: /count Hello World');
+  }
+  
+  const words = text.trim().split(/\s+/).length;
+  const chars = text.length;
+  const charsNoSpaces = text.replace(/\s/g, '').length;
+  
+  ctx.replyWithMarkdownV2(
+    `📊 *Text Analysis Results*\\n\\n` +
+    `📝 **Text:** "${escapeMarkdownV2(text)}"\\n\\n` +
+    `🔢 **Statistics:**\\n` +
+    `• Words: ${words}\\n` +
+    `• Characters: ${chars}\\n` +
+    `• Characters \\(no spaces\\): ${charsNoSpaces}\\n\\n` +
+    `✨ _Analysis by Cool Shot Systems_`
+  );
+});
+
+bot.command('reverse', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('reverse', ctx.from.id);
+  
+  const text = ctx.message.text.replace('/reverse ', '');
+  if (!text || text === '/reverse') {
+    return ctx.reply('Usage: /reverse <text>\nExample: /reverse Hello World');
+  }
+  
+  const reversed = text.split('').reverse().join('');
+  ctx.replyWithMarkdownV2(
+    `🔄 *Text Reversal*\\n\\n` +
+    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
+    `🔄 **Reversed:** "${escapeMarkdownV2(reversed)}"\\n\\n` +
+    `✨ _Powered by Cool Shot Systems_`
+  );
+});
+
+bot.command('upper', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('upper', ctx.from.id);
+  
+  const text = ctx.message.text.replace('/upper ', '');
+  if (!text || text === '/upper') {
+    return ctx.reply('Usage: /upper <text>\nExample: /upper hello world');
+  }
+  
+  ctx.replyWithMarkdownV2(
+    `🔤 *UPPERCASE CONVERSION*\\n\\n` +
+    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
+    `🔤 **UPPERCASE:** "${escapeMarkdownV2(text.toUpperCase())}"\\n\\n` +
+    `✨ _Powered by Cool Shot Systems_`
+  );
+});
+
+bot.command('lower', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('lower', ctx.from.id);
+  
+  const text = ctx.message.text.replace('/lower ', '');
+  if (!text || text === '/lower') {
+    return ctx.reply('Usage: /lower <text>\nExample: /lower HELLO WORLD');
+  }
+  
+  ctx.replyWithMarkdownV2(
+    `🔡 *lowercase conversion*\\n\\n` +
+    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
+    `🔡 **lowercase:** "${escapeMarkdownV2(text.toLowerCase())}"\\n\\n` +
+    `✨ _Powered by Cool Shot Systems_`
+  );
+});
+
+bot.command('title', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('title', ctx.from.id);
+  
+  const text = ctx.message.text.replace('/title ', '');
+  if (!text || text === '/title') {
+    return ctx.reply('Usage: /title <text>\nExample: /title hello world');
+  }
+  
+  const titleCase = text.replace(/\w\S*/g, (txt) => 
+    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  );
+  
+  ctx.replyWithMarkdownV2(
+    `📄 *Title Case Conversion*\\n\\n` +
+    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
+    `📄 **Title Case:** "${escapeMarkdownV2(titleCase)}"\\n\\n` +
+    `✨ _Powered by Cool Shot Systems_`
+  );
+});
+
+bot.command('encode', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('encode', ctx.from.id);
+  
+  const text = ctx.message.text.replace('/encode ', '');
+  if (!text || text === '/encode') {
+    return ctx.reply('Usage: /encode <text>\nExample: /encode Hello World');
+  }
+  
+  try {
+    const encoded = Buffer.from(text, 'utf8').toString('base64');
+    ctx.replyWithMarkdownV2(
+      `🔐 *Base64 Encoding*\\n\\n` +
+      `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
+      `🔐 **Encoded:** \`${escapeMarkdownV2(encoded)}\`\\n\\n` +
+      `✨ _Powered by Cool Shot Systems_`
+    );
+  } catch (error) {
+    ctx.reply('❌ Encoding failed. Please check your input.');
+  }
+});
+
+bot.command('decode', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('decode', ctx.from.id);
+  
+  const text = ctx.message.text.replace('/decode ', '');
+  if (!text || text === '/decode') {
+    return ctx.reply('Usage: /decode <base64_text>\nExample: /decode SGVsbG8gV29ybGQ=');
+  }
+  
+  try {
+    const decoded = Buffer.from(text, 'base64').toString('utf8');
+    ctx.replyWithMarkdownV2(
+      `🔓 *Base64 Decoding*\\n\\n` +
+      `🔐 **Encoded:** \`${escapeMarkdownV2(text)}\`\\n` +
+      `🔓 **Decoded:** "${escapeMarkdownV2(decoded)}"\\n\\n` +
+      `✨ _Powered by Cool Shot Systems_`
+    );
+  } catch (error) {
+    ctx.reply('❌ Decoding failed. Please provide valid Base64 text.');
+  }
+});
+
+// Games and Fun Features
+bot.command('games', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('games', ctx.from.id);
+  
+  ctx.replyWithMarkdownV2(
+    '🎮 *Cool Shot Games & Fun*\\n\\n' +
+    '🎲 **Available Games:**\\n' +
+    '• `/dice` \\- Roll a dice \\(1\\-6\\)\\n' +
+    '• `/coin` \\- Flip a coin\\n' +
+    '• `/number` \\- Random number \\(1\\-100\\)\\n' +
+    '• `/8ball <question>` \\- Magic 8\\-ball\\n' +
+    '• `/quote` \\- Get an inspirational quote\\n' +
+    '• `/joke` \\- Random joke\\n' +
+    '• `/fact` \\- Random fun fact\\n\\n' +
+    '🎯 *Example:* `/8ball Will I be successful?`'
+  );
+});
+
+bot.command('dice', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('dice', ctx.from.id);
+  
+  const roll = Math.floor(Math.random() * 6) + 1;
+  const diceEmoji = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][roll - 1];
+  
+  ctx.replyWithMarkdownV2(
+    `🎲 *Dice Roll*\\n\\n` +
+    `${diceEmoji} **You rolled:** ${roll}\\n\\n` +
+    `🎯 _Good luck\\!_`
+  );
+});
+
+bot.command('coin', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('coin', ctx.from.id);
+  
+  const result = Math.random() < 0.5 ? 'Heads' : 'Tails';
+  const emoji = result === 'Heads' ? '🙂' : '🔄';
+  
+  ctx.replyWithMarkdownV2(
+    `🪙 *Coin Flip*\\n\\n` +
+    `${emoji} **Result:** ${result}\\n\\n` +
+    `🎯 _Fate has decided\\!_`
+  );
+});
+
+bot.command('number', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('number', ctx.from.id);
+  
+  const number = Math.floor(Math.random() * 100) + 1;
+  
+  ctx.replyWithMarkdownV2(
+    `🔢 *Random Number*\\n\\n` +
+    `🎯 **Your number:** ${number}\\n` +
+    `📊 **Range:** 1 \\- 100\\n\\n` +
+    `✨ _Generated by Cool Shot Systems_`
+  );
+});
+
+bot.command('8ball', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('8ball', ctx.from.id);
+  
+  const question = ctx.message.text.replace('/8ball ', '');
+  if (!question || question === '/8ball') {
+    return ctx.reply('Usage: /8ball <question>\nExample: /8ball Will I be successful?');
+  }
+  
+  const responses = [
+    'It is certain', 'Reply hazy, try again', 'Don\'t count on it', 
+    'It is decidedly so', 'Ask again later', 'My reply is no',
+    'Without a doubt', 'Better not tell you now', 'My sources say no',
+    'Yes definitely', 'Cannot predict now', 'Outlook not so good',
+    'You may rely on it', 'Concentrate and ask again', 'Very doubtful',
+    'As I see it, yes', 'Most likely', 'Outlook good',
+    'Signs point to yes', 'Yes'
+  ];
+  
+  const answer = responses[Math.floor(Math.random() * responses.length)];
+  
+  ctx.replyWithMarkdownV2(
+    `🎱 *Magic 8\\-Ball*\\n\\n` +
+    `❓ **Question:** "${escapeMarkdownV2(question)}"\\n` +
+    `🔮 **Answer:** *${escapeMarkdownV2(answer)}*\\n\\n` +
+    `✨ _The magic 8\\-ball has spoken\\!_`
+  );
+});
+
+bot.command('quote', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('quote', ctx.from.id);
+  
+  const quotes = [
+    { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+    { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
+    { text: "Life is what happens to you while you're busy making other plans.", author: "John Lennon" },
+    { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+    { text: "It is during our darkest moments that we must focus to see the light.", author: "Aristotle" },
+    { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+    { text: "The only impossible journey is the one you never begin.", author: "Tony Robbins" },
+    { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
+    { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+    { text: "Quality is not an act, it is a habit.", author: "Aristotle" }
+  ];
+  
+  const quote = quotes[Math.floor(Math.random() * quotes.length)];
+  
+  ctx.replyWithMarkdownV2(
+    `💎 *Inspirational Quote*\\n\\n` +
+    `"${escapeMarkdownV2(quote.text)}"\\n\\n` +
+    `👤 *— ${escapeMarkdownV2(quote.author)}*\\n\\n` +
+    `✨ _Inspiration by Cool Shot Systems_`
+  );
+});
+
+bot.command('joke', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('joke', ctx.from.id);
+  
+  const jokes = [
+    "Why don't scientists trust atoms? Because they make up everything!",
+    "Why did the programmer quit his job? Because he didn't get arrays!",
+    "How do you organize a space party? You planet!",
+    "Why don't eggs tell jokes? They'd crack each other up!",
+    "What do you call a fake noodle? An impasta!",
+    "Why did the math book look so sad? Because it had too many problems!",
+    "What's the best thing about Switzerland? I don't know, but the flag is a big plus!",
+    "Why do programmers prefer dark mode? Because light attracts bugs!",
+    "How does a penguin build its house? Igloos it together!",
+    "Why don't robots ever panic? They have nerves of steel!"
+  ];
+  
+  const joke = jokes[Math.floor(Math.random() * jokes.length)];
+  
+  ctx.replyWithMarkdownV2(
+    `😂 *Random Joke*\\n\\n` +
+    `🎭 ${escapeMarkdownV2(joke)}\\n\\n` +
+    `😄 _Hope that made you smile\\!_`
+  );
+});
+
+bot.command('fact', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('fact', ctx.from.id);
+  
+  const facts = [
+    "Honey never spoils! Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly edible.",
+    "Octopuses have three hearts and blue blood!",
+    "A group of flamingos is called a 'flamboyance'.",
+    "Bananas are berries, but strawberries aren't!",
+    "There are more possible games of chess than atoms in the observable universe.",
+    "A shrimp's heart is in its head.",
+    "Butterflies taste with their feet.",
+    "The human brain uses about 20% of the body's total energy.",
+    "Lightning strikes the Earth about 100 times per second.",
+    "A single cloud can weigh more than a million pounds!"
+  ];
+  
+  const fact = facts[Math.floor(Math.random() * facts.length)];
+  
+  ctx.replyWithMarkdownV2(
+    `🧠 *Fun Fact*\\n\\n` +
+    `💡 ${escapeMarkdownV2(fact)}\\n\\n` +
+    `🤓 _Learn something new every day\\!_`
+  );
+});
+
+// Bot Stats Command (Enhanced)
+bot.command('stats', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('stats', ctx.from.id);
+  
+  const uptime = Math.floor((Date.now() - new Date(analytics.botStartTime)) / (1000 * 60 * 60));
+  const uptimeDays = Math.floor(uptime / 24);
+  const uptimeHours = uptime % 24;
+  
+  const totalUsers = Object.keys(users).length;
+  const totalAdmins = getAdminUsers().length;
+  const activeToday = Object.values(users).filter(u => {
+    const lastSeen = new Date(u.lastSeen);
+    const today = new Date();
+    return lastSeen.toDateString() === today.toDateString();
+  }).length;
+  
+  const userRole = userRoles[ctx.from.id] || 'Brain Master';
+  const userLang = userLanguages[ctx.from.id] || 'en';
+  const langLabel = languages.find(l => l.code === userLang)?.label || '🇬🇧 English';
+  
+  ctx.replyWithMarkdownV2(
+    `📊 *Cool Shot AI Statistics*\\n\\n` +
+    `⏰ **Bot Uptime:** ${uptimeDays}d ${uptimeHours}h\\n` +
+    `👥 **Total Users:** ${totalUsers}\\n` +
+    `🛡️ **Administrators:** ${totalAdmins}\\n` +
+    `🎯 **Active Today:** ${activeToday}\\n` +
+    `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
+    `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
+    `👤 **Your Settings:**\\n` +
+    `🧠 Role: ${escapeMarkdownV2(userRole)}\\n` +
+    `🌐 Language: ${escapeMarkdownV2(langLabel)}\\n\\n` +
+    `✨ _Powered by Cool Shot Systems_`
+  );
+});
+
+// Command Usage Statistics (Admin Only)
+bot.command('commands', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('commands', ctx.from.id);
+  
+  if (!isAdmin(ctx.from.id)) {
+    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view command statistics\\.');
+  }
+  
+  const sortedCommands = Object.entries(analytics.commandStats)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 15);
+  
+  let message = `⚡ *Command Usage Statistics*\\n\\n`;
+  message += `📊 **Total Commands Executed:** ${analytics.totalCommands}\\n\\n`;
+  message += `🏆 **Top Commands:**\\n`;
+  
+  sortedCommands.forEach(([command, count], index) => {
+    const percentage = ((count / analytics.totalCommands) * 100).toFixed(1);
+    message += `${index + 1}\\. /${escapeMarkdownV2(command)} \\- ${count} uses \\(${percentage}%\\)\\n`;
+  });
+  
+  if (sortedCommands.length === 0) {
+    message += `No command data available yet\\.`;
+  }
+  
+  message += `\\n✨ _Analytics by Cool Shot Systems_`;
+  
+  ctx.replyWithMarkdownV2(message);
+});
+
+// Top Users Command (Admin Only)  
+bot.command('topusers', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('topusers', ctx.from.id);
+  
+  if (!isAdmin(ctx.from.id)) {
+    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view top users\\.');
+  }
+  
+  const userStats = Object.entries(analytics.userActivity)
+    .map(([userId, activity]) => ({
+      user: users[userId],
+      total: activity.messages + activity.commands,
+      messages: activity.messages,
+      commands: activity.commands
+    }))
+    .filter(entry => entry.user)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+  
+  let message = `👑 *Most Active Users*\\n\\n`;
+  
+  userStats.forEach((entry, index) => {
+    const name = entry.user.firstName || 'Unknown';
+    const username = entry.user.username ? `@${entry.user.username}` : 'No username';
+    const isAdminBadge = entry.user.isAdmin ? ' 🛡️' : '';
+    message += `${index + 1}\\. ${escapeMarkdownV2(name)} \\(${escapeMarkdownV2(username)}\\)${isAdminBadge}\\n`;
+    message += `   💬 ${entry.messages} msgs \\| ⚡ ${entry.commands} cmds \\| 🎯 ${entry.total} total\\n\\n`;
+  });
+  
+  if (userStats.length === 0) {
+    message += `No user activity data available yet\\.`;
+  }
+  
+  message += `✨ _Rankings by Cool Shot Systems_`;
+  
+  ctx.replyWithMarkdownV2(message);
 });
 
 // ========== Callback Query Handler ==========
@@ -770,8 +1443,74 @@ bot.on('callback_query', async (ctx) => {
     await ctx.answerCbQuery();
     await ctx.replyWithMarkdownV2(
       "🆘 *Cool Shot AI Help*\\n\\n" +
-      "• Use /start to see welcome\\n• /role to pick your expert mode\\n• /lang for language\\n• /about for info\\n• /reset for a fresh start\\n• /buttons for quick menu\\n• /support <your message> if you need help\\n• /ping to check bot status"
+      "• Use /start to see welcome\\n• /role to pick your expert mode\\n• /lang for language\\n• /about for info\\n• /reset for a fresh start\\n• /buttons for quick menu\\n• /games for fun activities\\n• /tools for text utilities\\n• /stats for bot statistics\\n• /support <your message> if you need help\\n• /ping to check bot status"
     );
+  }
+  // New feature callbacks
+  else if (data === 'show_games') {
+    await ctx.editMessageText(
+      '🎮 *Cool Shot Games & Fun*\\n\\n' +
+      '🎲 **Available Games:**\\n' +
+      '• `/dice` \\- Roll a dice \\(1\\-6\\)\\n' +
+      '• `/coin` \\- Flip a coin\\n' +
+      '• `/number` \\- Random number \\(1\\-100\\)\\n' +
+      '• `/8ball <question>` \\- Magic 8\\-ball\\n' +
+      '• `/quote` \\- Get an inspirational quote\\n' +
+      '• `/joke` \\- Random joke\\n' +
+      '• `/fact` \\- Random fun fact\\n\\n' +
+      '🎯 *Example:* `/8ball Will I be successful?`',
+      { parse_mode: 'MarkdownV2' }
+    );
+    ctx.answerCbQuery('🎮 Games menu loaded');
+  }
+  else if (data === 'show_tools') {
+    await ctx.editMessageText(
+      '🛠️ *Text Utilities Toolkit*\\n\\n' +
+      '📝 **Available Tools:**\\n' +
+      '• `/count <text>` \\- Count words and characters\\n' +
+      '• `/reverse <text>` \\- Reverse text\\n' +
+      '• `/upper <text>` \\- Convert to UPPERCASE\\n' +
+      '• `/lower <text>` \\- Convert to lowercase\\n' +
+      '• `/title <text>` \\- Convert To Title Case\\n' +
+      '• `/encode <text>` \\- Base64 encode text\\n' +
+      '• `/decode <text>` \\- Base64 decode text\\n\\n' +
+      '💡 *Example:* `/count Hello World` will show character and word count',
+      { parse_mode: 'MarkdownV2' }
+    );
+    ctx.answerCbQuery('🛠️ Text tools loaded');
+  }
+  else if (data === 'show_stats') {
+    const uptime = Math.floor((Date.now() - new Date(analytics.botStartTime)) / (1000 * 60 * 60));
+    const uptimeDays = Math.floor(uptime / 24);
+    const uptimeHours = uptime % 24;
+    
+    const totalUsers = Object.keys(users).length;
+    const totalAdmins = getAdminUsers().length;
+    const activeToday = Object.values(users).filter(u => {
+      const lastSeen = new Date(u.lastSeen);
+      const today = new Date();
+      return lastSeen.toDateString() === today.toDateString();
+    }).length;
+    
+    const userRole = userRoles[ctx.from.id] || 'Brain Master';
+    const userLang = userLanguages[ctx.from.id] || 'en';
+    const langLabel = languages.find(l => l.code === userLang)?.label || '🇬🇧 English';
+    
+    await ctx.editMessageText(
+      `📊 *Cool Shot AI Statistics*\\n\\n` +
+      `⏰ **Bot Uptime:** ${uptimeDays}d ${uptimeHours}h\\n` +
+      `👥 **Total Users:** ${totalUsers}\\n` +
+      `🛡️ **Administrators:** ${totalAdmins}\\n` +
+      `🎯 **Active Today:** ${activeToday}\\n` +
+      `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
+      `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
+      `👤 **Your Settings:**\\n` +
+      `🧠 Role: ${escapeMarkdownV2(userRole)}\\n` +
+      `🌐 Language: ${escapeMarkdownV2(langLabel)}\\n\\n` +
+      `✨ _Powered by Cool Shot Systems_`,
+      { parse_mode: 'MarkdownV2' }
+    );
+    ctx.answerCbQuery('📊 Stats updated');
   }
   // Admin Panel
   else if (data === 'show_admin') {
@@ -888,6 +1627,101 @@ bot.on('callback_query', async (ctx) => {
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery('🆘 Support system info shown');
+  }
+  // New admin callbacks
+  else if (data === 'admin_commands') {
+    if (!isAdmin(ctx.from.id)) {
+      await ctx.answerCbQuery('⛔️ Access denied - Admins only!', { show_alert: true });
+      return;
+    }
+    
+    const sortedCommands = Object.entries(analytics.commandStats)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10);
+    
+    let message = `⚡ *Command Usage Statistics*\\n\\n`;
+    message += `📊 **Total Commands:** ${analytics.totalCommands}\\n\\n`;
+    message += `🏆 **Top Commands:**\\n`;
+    
+    sortedCommands.forEach(([command, count], index) => {
+      const percentage = ((count / analytics.totalCommands) * 100).toFixed(1);
+      message += `${index + 1}\\. /${escapeMarkdownV2(command)} \\- ${count} uses \\(${percentage}%\\)\\n`;
+    });
+    
+    if (sortedCommands.length === 0) {
+      message += `No command data available yet\\.`;
+    }
+    
+    await ctx.editMessageText(message, { parse_mode: 'MarkdownV2' });
+    ctx.answerCbQuery('⚡ Command stats loaded');
+  }
+  else if (data === 'admin_topusers') {
+    if (!isAdmin(ctx.from.id)) {
+      await ctx.answerCbQuery('⛔️ Access denied - Admins only!', { show_alert: true });
+      return;
+    }
+    
+    const userStats = Object.entries(analytics.userActivity)
+      .map(([userId, activity]) => ({
+        user: users[userId],
+        total: activity.messages + activity.commands,
+        messages: activity.messages,
+        commands: activity.commands
+      }))
+      .filter(entry => entry.user)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8);
+    
+    let message = `👑 *Most Active Users*\\n\\n`;
+    
+    userStats.forEach((entry, index) => {
+      const name = entry.user.firstName || 'Unknown';
+      const username = entry.user.username ? `@${entry.user.username}` : 'No username';
+      const isAdminBadge = entry.user.isAdmin ? ' 🛡️' : '';
+      message += `${index + 1}\\. ${escapeMarkdownV2(name)}${isAdminBadge}\\n`;
+      message += `   ${escapeMarkdownV2(username)} \\| 🎯 ${entry.total} interactions\\n\\n`;
+    });
+    
+    if (userStats.length === 0) {
+      message += `No user activity data available yet\\.`;
+    }
+    
+    await ctx.editMessageText(message, { parse_mode: 'MarkdownV2' });
+    ctx.answerCbQuery('👑 Top users loaded');
+  }
+  else if (data === 'admin_analytics') {
+    if (!isRayBen(ctx.from.id)) {
+      await ctx.answerCbQuery('⛔️ Only RayBen445 can view full analytics!', { show_alert: true });
+      return;
+    }
+    
+    const uptime = Math.floor((Date.now() - new Date(analytics.botStartTime)) / (1000 * 60 * 60 * 24));
+    const totalUsers = Object.keys(users).length;
+    const activeToday = Object.values(users).filter(u => {
+      const lastSeen = new Date(u.lastSeen);
+      const today = new Date();
+      return lastSeen.toDateString() === today.toDateString();
+    }).length;
+    
+    // Top commands
+    const topCommands = Object.entries(analytics.commandStats)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([cmd, count], i) => `${i + 1}\\. /${escapeMarkdownV2(cmd)} \\(${count}\\)`)
+      .join('\\n');
+    
+    await ctx.editMessageText(
+      `📊 *Full Analytics Dashboard*\\n\\n` +
+      `⏰ **Uptime:** ${uptime} days\\n` +
+      `👥 **Total Users:** ${totalUsers}\\n` +
+      `🎯 **Active Today:** ${activeToday}\\n` +
+      `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
+      `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
+      `🏆 **Top Commands:**\\n${topCommands || 'No data'}\\n\\n` +
+      `✨ _Full analytics for RayBen445_`,
+      { parse_mode: 'MarkdownV2' }
+    );
+    ctx.answerCbQuery('📊 Full analytics loaded');
   }
 });
 
