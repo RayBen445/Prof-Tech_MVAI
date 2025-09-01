@@ -56,6 +56,7 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Helper for Telegram MarkdownV2 escaping
+// IMPORTANT: Always use escapeMarkdownV2() for hardcoded MarkdownV2 messages to prevent Telegram 400 errors
 function escapeMarkdownV2(text) {
   return text.replace(/([_*[\]()~`>#+=|{}.!-])/g, '\\$1');
 }
@@ -402,17 +403,21 @@ bot.on('text', async (ctx, next) => {
     for (const adminId of getAdminIds()) {
       await bot.telegram.sendMessage(
         adminId,
-        `📩 *New Support Request*\\n\\n` +
-        `👤 **From:** ${escapeMarkdownV2(userName)} \\(${username}\\)\\n` +
-        `🆔 **User ID:** \`${ctx.from.id}\`\\n\\n` +
-        `💬 **Message:**\\n${escapeMarkdownV2(ctx.message.text)}`,
+        escapeMarkdownV2(
+          `📩 *New Support Request*\n\n` +
+          `👤 **From:** ${userName} (${username})\n` +
+          `🆔 **User ID:** \`${ctx.from.id}\`\n\n` +
+          `💬 **Message:**\n${ctx.message.text}`
+        ),
         { parse_mode: 'MarkdownV2' }
       );
     }
     return ctx.replyWithMarkdownV2(
-      '✅ *Support Request Sent*\\n\\n' +
-      '📨 Your message has been forwarded to our admin team\\!\\n' +
-      '⏰ Expect a response soon\\.'
+      escapeMarkdownV2(
+        '✅ *Support Request Sent*\n\n' +
+        '📨 Your message has been forwarded to our admin team!\n' +
+        '⏰ Expect a response soon.'
+      )
     );
   }
 
@@ -425,23 +430,27 @@ bot.on('text', async (ctx, next) => {
     for (const adminId of getAdminIds()) {
       await bot.telegram.sendMessage(
         adminId, 
-        `📩 *Support Request*\\n\\n` +
-        `👤 **From:** ${escapeMarkdownV2(userName)} \\(${username}\\)\\n` +
-        `🆔 **User ID:** \`${ctx.from.id}\`\\n\\n` +
-        `💬 **Message:**\\n${escapeMarkdownV2(supportText)}`,
+        escapeMarkdownV2(
+          `📩 *Support Request*\n\n` +
+          `👤 **From:** ${userName} (${username})\n` +
+          `🆔 **User ID:** \`${ctx.from.id}\`\n\n` +
+          `💬 **Message:**\n${supportText}`
+        ),
         { parse_mode: 'MarkdownV2' }
       );
     }
     return ctx.replyWithMarkdownV2(
-      '✅ *Support Request Sent*\\n\\n' +
-      '📨 Your message has been forwarded to our team\\!\\n' +
-      '⏰ Expect a response soon\\.'
+      escapeMarkdownV2(
+        '✅ *Support Request Sent*\n\n' +
+        '📨 Your message has been forwarded to our team!\n' +
+        '⏰ Expect a response soon.'
+      )
     );
   }
   // Broadcast handler (admin only)
   if (ctx.message.text.startsWith('/broadcast ')) {
     if (!isAdmin(ctx.from.id)) {
-      return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can broadcast messages\\.');
+      return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can broadcast messages.'));
     }
     const msg = ctx.message.text.replace('/broadcast ', '');
     const adminName = ctx.from.first_name || 'Admin';
@@ -449,15 +458,19 @@ bot.on('text', async (ctx, next) => {
     for (const userId of USER_IDS) {
       await bot.telegram.sendMessage(
         userId, 
-        `📢 *Admin Broadcast*\\n\\n` +
-        `👤 **From:** ${escapeMarkdownV2(adminName)}\\n\\n` +
-        `💬 **Message:**\\n${escapeMarkdownV2(msg)}`,
+        escapeMarkdownV2(
+          `📢 *Admin Broadcast*\n\n` +
+          `👤 **From:** ${adminName}\n\n` +
+          `💬 **Message:**\n${msg}`
+        ),
         { parse_mode: 'MarkdownV2' }
       );
     }
     return ctx.replyWithMarkdownV2(
-      '✅ *Broadcast Complete*\\n\\n' +
-      `📤 Message sent to ${USER_IDS.size} users\\!`
+      escapeMarkdownV2(
+        '✅ *Broadcast Complete*\n\n' +
+        `📤 Message sent to ${USER_IDS.size} users!`
+      )
     );
   }
 
@@ -475,7 +488,7 @@ bot.on('text', async (ctx, next) => {
   const time = new Date().toLocaleTimeString('en-NG', { timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit' });
 
   await ctx.sendChatAction('typing');
-  let response = '🤖 Sorry, I couldn’t generate a reply.';
+  let response = escapeMarkdownV2("🤖 Sorry, I couldn't generate a reply.");
 
   for (let url of aiAPIs) {
     try {
@@ -567,10 +580,12 @@ bot.start(async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('start', ctx.from.id);
   ctx.replyWithMarkdownV2(
-    "👋 *Hello, I'm Cool Shot AI!*\\n\\n" +
-    "🤖 Developed by *Cool Shot Systems*, your intelligent assistant is now online!\\n\\n" +
-    "💡 Ask me anything:\\n🧮 Math | 💊 Health | 💻 Tech | 🎭 Creativity\\n\\n" +
-    "🎓 Use /role to switch brain mode\\n🌐 Use /lang to choose language\\n🛠️ Use /buttons for quick menu\\n🔄 Use /reset to reset settings\\n🎮 Use /games for fun activities\\n🆘 Use /support <your message> for support\\n🚀 Let's go!"
+    escapeMarkdownV2(
+      "👋 *Hello, I'm Cool Shot AI!*\n\n" +
+      "🤖 Developed by *Cool Shot Systems*, your intelligent assistant is now online!\n\n" +
+      "💡 Ask me anything:\n🧮 Math | 💊 Health | 💻 Tech | 🎭 Creativity\n\n" +
+      "🎓 Use /role to switch brain mode\n🌐 Use /lang to choose language\n🛠️ Use /buttons for quick menu\n🔄 Use /reset to reset settings\n🎮 Use /games for fun activities\n🆘 Use /support <your message> for support\n🚀 Let's go!"
+    )
   );
 });
 
@@ -579,9 +594,11 @@ bot.command('about', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('about', ctx.from.id);
   ctx.replyWithMarkdownV2(
-    "ℹ️ *About Cool Shot AI*\\n\\n" +
-    "🤖 Developed by *Cool Shot Systems*\\n💡 Multi-role intelligent assistant powered by AI endpoints\\n🌐 15+ languages supported\\n🧠 100+ Knowledge Roles\\n\\n" +
-    "🎓 Use /role and /lang\\n🛠️ Use /buttons for quick settings\\n🔄 Use /reset to reset settings\\n🆘 Use /support <your message> for support"
+    escapeMarkdownV2(
+      "ℹ️ *About Cool Shot AI*\n\n" +
+      "🤖 Developed by *Cool Shot Systems*\n💡 Multi-role intelligent assistant powered by AI endpoints\n🌐 15+ languages supported\n🧠 100+ Knowledge Roles\n\n" +
+      "🎓 Use /role and /lang\n🛠️ Use /buttons for quick settings\n🔄 Use /reset to reset settings\n🆘 Use /support <your message> for support"
+    )
   );
 });
 
@@ -590,8 +607,10 @@ bot.command('help', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('help', ctx.from.id);
   ctx.replyWithMarkdownV2(
-    "🆘 *Cool Shot AI Help*\\n\\n" +
-    "• Use /start to see welcome\\n• /role to pick your expert mode\\n• /lang for language\\n• /about for info\\n• /reset for a fresh start\\n• /buttons for quick menu\\n• /games for fun activities\\n• /tools for text utilities\\n• /stats for bot statistics\\n• /support <your message> if you need help\\n• /ping to check bot status"
+    escapeMarkdownV2(
+      "🆘 *Cool Shot AI Help*\n\n" +
+      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+    )
   );
 });
 
@@ -600,12 +619,14 @@ bot.command('support', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('support', ctx.from.id);
   ctx.replyWithMarkdownV2(
-    "🆘 *Cool Shot AI Support Center*\\n\\n" +
-    "💌 *Contact Options:*\\n" +
-    "• Email: support@coolshotsystems\\.com\\n" +
-    "• Quick Help: `/support <your message>`\\n\\n" +
-    "⚡ *Response Time:* Our admins respond ASAP\\!\\n\\n" +
-    "💡 *Tip:* Be specific about your issue for faster resolution\\."
+    escapeMarkdownV2(
+      "🆘 *Cool Shot AI Support Center*\n\n" +
+      "💌 *Contact Options:*\n" +
+      "• Email: support@coolshotsystems.com\n" +
+      "• Quick Help: `/support <your message>`\n\n" +
+      "⚡ *Response Time:* Our admins respond ASAP!\n\n" +
+      "💡 *Tip:* Be specific about your issue for faster resolution."
+    )
   );
 });
 
@@ -613,7 +634,7 @@ bot.command('support', async (ctx) => {
 bot.command('ping', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('ping', ctx.from.id);
-  ctx.replyWithMarkdownV2('🏓 *Cool Shot AI Status: ONLINE*\\n\\n✅ All systems operational\\!');
+  ctx.replyWithMarkdownV2(escapeMarkdownV2('🏓 *Cool Shot AI Status: ONLINE*\n\n✅ All systems operational!'));
 });
 
 // Reset Command
@@ -624,10 +645,12 @@ bot.command('reset', async (ctx) => {
   delete userRoles[userId];
   delete userLanguages[userId];
   ctx.replyWithMarkdownV2(
-    '🔄 *Settings Reset Complete*\\n\\n' +
-    '✅ Role: Default \\(Brain Master\\)\\n' +
-    '✅ Language: Default \\(English\\)\\n\\n' +
-    '💡 Use /role and /lang to customize again\\!'
+    escapeMarkdownV2(
+      '🔄 *Settings Reset Complete*\n\n' +
+      '✅ Role: Default (Brain Master)\n' +
+      '✅ Language: Default (English)\n\n' +
+      '💡 Use /role and /lang to customize again!'
+    )
   );
 });
 
@@ -635,7 +658,7 @@ bot.command('reset', async (ctx) => {
 bot.command('role', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('role', ctx.from.id);
-  ctx.replyWithMarkdownV2('🧠 *Choose Your Expert Role*\\n\\n💡 Select a role to customize AI responses:', {
+  ctx.replyWithMarkdownV2(escapeMarkdownV2('🧠 *Choose Your Expert Role*\n\n💡 Select a role to customize AI responses:'), {
     reply_markup: {
       inline_keyboard: chunkArray(roles, 4).map(row =>
         row.map(r => ({ text: r, callback_data: `role_${r}` }))
@@ -648,7 +671,7 @@ bot.command('role', async (ctx) => {
 bot.command('lang', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('lang', ctx.from.id);
-  ctx.replyWithMarkdownV2('🌍 *Choose Your Language*\\n\\n🗣️ Select your preferred language for responses:', {
+  ctx.replyWithMarkdownV2(escapeMarkdownV2('🌍 *Choose Your Language*\n\n🗣️ Select your preferred language for responses:'), {
     reply_markup: {
       inline_keyboard: chunkArray(languages, 3).map(row =>
         row.map(l => ({ text: l.label, callback_data: `lang_${l.code}` }))
@@ -661,7 +684,7 @@ bot.command('lang', async (ctx) => {
 bot.command('buttons', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('buttons', ctx.from.id);
-  ctx.replyWithMarkdownV2('⚙️ *Quick Settings Menu*\\n\\n🚀 Choose an action below:', {
+  ctx.replyWithMarkdownV2(escapeMarkdownV2('⚙️ *Quick Settings Menu*\n\n🚀 Choose an action below:'), {
     reply_markup: {
       inline_keyboard: [
         [{ text: '🧠 Choose Role', callback_data: 'show_role' }],
@@ -715,7 +738,7 @@ bot.command('apistatus', async (ctx) => {
   await trackCommand('apistatus', ctx.from.id);
   
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can check API status\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can check API status.'));
   }
   
   let message = `🔧 *AI API Status Dashboard*\\n\\n`;
@@ -878,7 +901,7 @@ bot.command('admin', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('admin', ctx.from.id);
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\n🛡️ This command is reserved for administrators only\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\n🛡️ This command is reserved for administrators only.'));
   }
 
   const buttons = [
@@ -896,7 +919,7 @@ bot.command('admin', async (ctx) => {
     buttons.push([{ text: '📊 Full Analytics', callback_data: 'admin_analytics' }]);
   }
 
-  ctx.replyWithMarkdownV2('🛡️ *Admin Control Panel*\\n\\n✨ Welcome to the administrative dashboard\\!', {
+  ctx.replyWithMarkdownV2(escapeMarkdownV2('🛡️ *Admin Control Panel*\n\n✨ Welcome to the administrative dashboard!'), {
     reply_markup: {
       inline_keyboard: buttons
     }
@@ -909,16 +932,18 @@ bot.command('*', async (ctx) => {
   await trackCommand('unknown', ctx.from.id);
   const command = ctx.message.text.split(' ')[0];
   ctx.replyWithMarkdownV2(
-    `❓ *Unknown Command*\\n\\n` +
-    `The command \`${escapeMarkdownV2(command)}\` is not recognized\\.\\n\\n` +
-    `🆘 *Available Commands:*\\n` +
-    `• /help \\- View all commands\\n` +
-    `• /about \\- Learn about Cool Shot AI\\n` +
-    `• /buttons \\- Quick action menu\\n` +
-    `• /games \\- Fun activities\\n` +
-    `• /tools \\- Text utilities\\n` +
-    `• /start \\- Welcome message\\n\\n` +
-    `💡 *Tip:* Use /help to see the complete command list\\!`
+    escapeMarkdownV2(
+      `❓ *Unknown Command*\n\n` +
+      `The command \`${command}\` is not recognized.\n\n` +
+      `🆘 *Available Commands:*\n` +
+      `• /help - View all commands\n` +
+      `• /about - Learn about Cool Shot AI\n` +
+      `• /buttons - Quick action menu\n` +
+      `• /games - Fun activities\n` +
+      `• /tools - Text utilities\n` +
+      `• /start - Welcome message\n\n` +
+      `💡 *Tip:* Use /help to see the complete command list!`
+    )
   );
 });
 
@@ -930,7 +955,7 @@ bot.command('analytics', async (ctx) => {
   await trackCommand('analytics', ctx.from.id);
   
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view analytics\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can view analytics.'));
   }
   
   const uptime = Math.floor((Date.now() - new Date(analytics.botStartTime)) / (1000 * 60 * 60 * 24));
@@ -979,7 +1004,7 @@ bot.command('activity', async (ctx) => {
   await trackCommand('activity', ctx.from.id);
   
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view user activity\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can view user activity.'));
   }
   
   const args = ctx.message.text.split(' ');
@@ -1073,16 +1098,18 @@ bot.command('tools', async (ctx) => {
   await trackCommand('tools', ctx.from.id);
   
   ctx.replyWithMarkdownV2(
-    '🛠️ *Text Utilities Toolkit*\\n\\n' +
-    '📝 **Available Tools:**\\n' +
-    '• `/count <text>` \\- Count words and characters\\n' +
-    '• `/reverse <text>` \\- Reverse text\\n' +
-    '• `/upper <text>` \\- Convert to UPPERCASE\\n' +
-    '• `/lower <text>` \\- Convert to lowercase\\n' +
-    '• `/title <text>` \\- Convert To Title Case\\n' +
-    '• `/encode <text>` \\- Base64 encode text\\n' +
-    '• `/decode <text>` \\- Base64 decode text\\n\\n' +
-    '💡 *Example:* `/count Hello World` will show character and word count'
+    escapeMarkdownV2(
+      '🛠️ *Text Utilities Toolkit*\n\n' +
+      '📝 **Available Tools:**\n' +
+      '• `/count <text>` - Count words and characters\n' +
+      '• `/reverse <text>` - Reverse text\n' +
+      '• `/upper <text>` - Convert to UPPERCASE\n' +
+      '• `/lower <text>` - Convert to lowercase\n' +
+      '• `/title <text>` - Convert To Title Case\n' +
+      '• `/encode <text>` - Base64 encode text\n' +
+      '• `/decode <text>` - Base64 decode text\n\n' +
+      '💡 *Example:* `/count Hello World` will show character and word count'
+    )
   );
 });
 
@@ -1100,13 +1127,15 @@ bot.command('count', async (ctx) => {
   const charsNoSpaces = text.replace(/\s/g, '').length;
   
   ctx.replyWithMarkdownV2(
-    `📊 *Text Analysis Results*\\n\\n` +
-    `📝 **Text:** "${escapeMarkdownV2(text)}"\\n\\n` +
-    `🔢 **Statistics:**\\n` +
-    `• Words: ${words}\\n` +
-    `• Characters: ${chars}\\n` +
-    `• Characters \\(no spaces\\): ${charsNoSpaces}\\n\\n` +
-    `✨ _Analysis by Cool Shot Systems_`
+    escapeMarkdownV2(
+      `📊 *Text Analysis Results*\n\n` +
+      `📝 **Text:** "${text}"\n\n` +
+      `🔢 **Statistics:**\n` +
+      `• Words: ${words}\n` +
+      `• Characters: ${chars}\n` +
+      `• Characters (no spaces): ${charsNoSpaces}\n\n` +
+      `✨ _Analysis by Cool Shot Systems_`
+    )
   );
 });
 
@@ -1121,10 +1150,12 @@ bot.command('reverse', async (ctx) => {
   
   const reversed = text.split('').reverse().join('');
   ctx.replyWithMarkdownV2(
-    `🔄 *Text Reversal*\\n\\n` +
-    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
-    `🔄 **Reversed:** "${escapeMarkdownV2(reversed)}"\\n\\n` +
-    `✨ _Powered by Cool Shot Systems_`
+    escapeMarkdownV2(
+      `🔄 *Text Reversal*\n\n` +
+      `📝 **Original:** "${text}"\n` +
+      `🔄 **Reversed:** "${reversed}"\n\n` +
+      `✨ _Powered by Cool Shot Systems_`
+    )
   );
 });
 
@@ -1138,10 +1169,12 @@ bot.command('upper', async (ctx) => {
   }
   
   ctx.replyWithMarkdownV2(
-    `🔤 *UPPERCASE CONVERSION*\\n\\n` +
-    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
-    `🔤 **UPPERCASE:** "${escapeMarkdownV2(text.toUpperCase())}"\\n\\n` +
-    `✨ _Powered by Cool Shot Systems_`
+    escapeMarkdownV2(
+      `🔤 *UPPERCASE CONVERSION*\n\n` +
+      `📝 **Original:** "${text}"\n` +
+      `🔤 **UPPERCASE:** "${text.toUpperCase()}"\n\n` +
+      `✨ _Powered by Cool Shot Systems_`
+    )
   );
 });
 
@@ -1155,10 +1188,12 @@ bot.command('lower', async (ctx) => {
   }
   
   ctx.replyWithMarkdownV2(
-    `🔡 *lowercase conversion*\\n\\n` +
-    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
-    `🔡 **lowercase:** "${escapeMarkdownV2(text.toLowerCase())}"\\n\\n` +
-    `✨ _Powered by Cool Shot Systems_`
+    escapeMarkdownV2(
+      `🔡 *lowercase conversion*\n\n` +
+      `📝 **Original:** "${text}"\n` +
+      `🔡 **lowercase:** "${text.toLowerCase()}"\n\n` +
+      `✨ _Powered by Cool Shot Systems_`
+    )
   );
 });
 
@@ -1176,10 +1211,12 @@ bot.command('title', async (ctx) => {
   );
   
   ctx.replyWithMarkdownV2(
-    `📄 *Title Case Conversion*\\n\\n` +
-    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
-    `📄 **Title Case:** "${escapeMarkdownV2(titleCase)}"\\n\\n` +
-    `✨ _Powered by Cool Shot Systems_`
+    escapeMarkdownV2(
+      `📄 *Title Case Conversion*\n\n` +
+      `📝 **Original:** "${text}"\n` +
+      `📄 **Title Case:** "${titleCase}"\n\n` +
+      `✨ _Powered by Cool Shot Systems_`
+    )
   );
 });
 
@@ -1195,10 +1232,12 @@ bot.command('encode', async (ctx) => {
   try {
     const encoded = Buffer.from(text, 'utf8').toString('base64');
     ctx.replyWithMarkdownV2(
-      `🔐 *Base64 Encoding*\\n\\n` +
-      `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
-      `🔐 **Encoded:** \`${escapeMarkdownV2(encoded)}\`\\n\\n` +
-      `✨ _Powered by Cool Shot Systems_`
+      escapeMarkdownV2(
+        `🔐 *Base64 Encoding*\n\n` +
+        `📝 **Original:** "${text}"\n` +
+        `🔐 **Encoded:** \`${encoded}\`\n\n` +
+        `✨ _Powered by Cool Shot Systems_`
+      )
     );
   } catch (error) {
     ctx.reply('❌ Encoding failed. Please check your input.');
@@ -1217,10 +1256,12 @@ bot.command('decode', async (ctx) => {
   try {
     const decoded = Buffer.from(text, 'base64').toString('utf8');
     ctx.replyWithMarkdownV2(
-      `🔓 *Base64 Decoding*\\n\\n` +
-      `🔐 **Encoded:** \`${escapeMarkdownV2(text)}\`\\n` +
-      `🔓 **Decoded:** "${escapeMarkdownV2(decoded)}"\\n\\n` +
-      `✨ _Powered by Cool Shot Systems_`
+      escapeMarkdownV2(
+        `🔓 *Base64 Decoding*\n\n` +
+        `🔐 **Encoded:** \`${text}\`\n` +
+        `🔓 **Decoded:** "${decoded}"\n\n` +
+        `✨ _Powered by Cool Shot Systems_`
+      )
     );
   } catch (error) {
     ctx.reply('❌ Decoding failed. Please provide valid Base64 text.');
@@ -1233,16 +1274,18 @@ bot.command('games', async (ctx) => {
   await trackCommand('games', ctx.from.id);
   
   ctx.replyWithMarkdownV2(
-    '🎮 *Cool Shot Games & Fun*\\n\\n' +
-    '🎲 **Available Games:**\\n' +
-    '• `/dice` \\- Roll a dice \\(1\\-6\\)\\n' +
-    '• `/coin` \\- Flip a coin\\n' +
-    '• `/number` \\- Random number \\(1\\-100\\)\\n' +
-    '• `/8ball <question>` \\- Magic 8\\-ball\\n' +
-    '• `/quote` \\- Get an inspirational quote\\n' +
-    '• `/joke` \\- Random joke\\n' +
-    '• `/fact` \\- Random fun fact\\n\\n' +
-    '🎯 *Example:* `/8ball Will I be successful?`'
+    escapeMarkdownV2(
+      '🎮 *Cool Shot Games & Fun*\n\n' +
+      '🎲 **Available Games:**\n' +
+      '• `/dice` - Roll a dice (1-6)\n' +
+      '• `/coin` - Flip a coin\n' +
+      '• `/number` - Random number (1-100)\n' +
+      '• `/8ball <question>` - Magic 8-ball\n' +
+      '• `/quote` - Get an inspirational quote\n' +
+      '• `/joke` - Random joke\n' +
+      '• `/fact` - Random fun fact\n\n' +
+      '🎯 *Example:* `/8ball Will I be successful?`'
+    )
   );
 });
 
@@ -1254,9 +1297,11 @@ bot.command('dice', async (ctx) => {
   const diceEmoji = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][roll - 1];
   
   ctx.replyWithMarkdownV2(
-    `🎲 *Dice Roll*\\n\\n` +
-    `${diceEmoji} **You rolled:** ${roll}\\n\\n` +
-    `🎯 _Good luck\\!_`
+    escapeMarkdownV2(
+      `🎲 *Dice Roll*\n\n` +
+      `${diceEmoji} **You rolled:** ${roll}\n\n` +
+      `🎯 _Good luck!_`
+    )
   );
 });
 
@@ -1438,7 +1483,7 @@ bot.command('commands', async (ctx) => {
   await trackCommand('commands', ctx.from.id);
   
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view command statistics\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can view command statistics.'));
   }
   
   const sortedCommands = Object.entries(analytics.commandStats)
@@ -1469,7 +1514,7 @@ bot.command('topusers', async (ctx) => {
   await trackCommand('topusers', ctx.from.id);
   
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view top users\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can view top users.'));
   }
   
   const userStats = Object.entries(analytics.userActivity)
@@ -1513,9 +1558,11 @@ bot.on('callback_query', async (ctx) => {
     const role = data.replace('role_', '');
     userRoles[userId] = role;
     await ctx.editMessageText(
-      `🧠 *Role Updated Successfully*\\n\\n` +
-      `✅ Your new expert role: *${escapeMarkdownV2(role)}*\\n\\n` +
-      `🚀 AI responses will now be tailored to this expertise\\!`, 
+      escapeMarkdownV2(
+        `🧠 *Role Updated Successfully*\n\n` +
+        `✅ Your new expert role: *${role}*\n\n` +
+        `🚀 AI responses will now be tailored to this expertise!`
+      ), 
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery(`🎯 Role set to ${role}`);
@@ -1526,16 +1573,18 @@ bot.on('callback_query', async (ctx) => {
     userLanguages[userId] = lang;
     const label = languages.find(l => l.code === lang)?.label || lang;
     await ctx.editMessageText(
-      `🌍 *Language Updated Successfully*\\n\\n` +
-      `✅ Your new language: ${escapeMarkdownV2(label)}\\n\\n` +
-      `🗣️ AI responses will now be in your selected language\\!`, 
+      escapeMarkdownV2(
+        `🌍 *Language Updated Successfully*\n\n` +
+        `✅ Your new language: ${label}\n\n` +
+        `🗣️ AI responses will now be in your selected language!`
+      ), 
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery(`🌐 Language set to ${label}`);
   }
   // Quick Buttons
   else if (data === 'show_role') {
-    await ctx.editMessageText('🧠 *Choose Your Expert Role*\\n\\n💡 Select a role to customize AI responses:', {
+    await ctx.editMessageText(escapeMarkdownV2('🧠 *Choose Your Expert Role*\n\n💡 Select a role to customize AI responses:'), {
       reply_markup: {
         inline_keyboard: chunkArray(roles, 4).map(row =>
           row.map(r => ({ text: r, callback_data: `role_${r}` }))
@@ -1546,7 +1595,7 @@ bot.on('callback_query', async (ctx) => {
     ctx.answerCbQuery();
   }
   else if (data === 'show_lang') {
-    await ctx.editMessageText('🌍 *Choose Your Language*\\n\\n🗣️ Select your preferred language for responses:', {
+    await ctx.editMessageText(escapeMarkdownV2('🌍 *Choose Your Language*\n\n🗣️ Select your preferred language for responses:'), {
       reply_markup: {
         inline_keyboard: chunkArray(languages, 3).map(row =>
           row.map(l => ({ text: l.label, callback_data: `lang_${l.code}` }))
@@ -1558,9 +1607,11 @@ bot.on('callback_query', async (ctx) => {
   }
   else if (data === 'show_about') {
     await ctx.editMessageText(
-      "ℹ️ *About Cool Shot AI*\\n\\n" +
-      "🤖 Developed by *Cool Shot Systems*\\n💡 Multi-role intelligent assistant powered by AI endpoints\\n🌐 15+ languages supported\\n🧠 100+ Knowledge Roles\\n\\n" +
-      "🎓 Use /role and /lang\\n🛠️ Use /buttons for quick settings\\n🔄 Use /reset to reset settings\\n🆘 Use /support <your message> for support",
+      escapeMarkdownV2(
+        "ℹ️ *About Cool Shot AI*\n\n" +
+        "🤖 Developed by *Cool Shot Systems*\n💡 Multi-role intelligent assistant powered by AI endpoints\n🌐 15+ languages supported\n🧠 100+ Knowledge Roles\n\n" +
+        "🎓 Use /role and /lang\n🛠️ Use /buttons for quick settings\n🔄 Use /reset to reset settings\n🆘 Use /support <your message> for support"
+      ),
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery();
@@ -1569,10 +1620,12 @@ bot.on('callback_query', async (ctx) => {
     delete userRoles[userId];
     delete userLanguages[userId];
     await ctx.editMessageText(
-      '🔄 *Settings Reset Complete*\\n\\n' +
-      '✅ Role: Default \\(Brain Master\\)\\n' +
-      '✅ Language: Default \\(English\\)\\n\\n' +
-      '💡 Use /role and /lang to customize again\\!',
+      escapeMarkdownV2(
+        '🔄 *Settings Reset Complete*\n\n' +
+        '✅ Role: Default (Brain Master)\n' +
+        '✅ Language: Default (English)\n\n' +
+        '💡 Use /role and /lang to customize again!'
+      ),
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery('✨ Settings reset successfully!');
@@ -1581,21 +1634,25 @@ bot.on('callback_query', async (ctx) => {
     supportState[userId] = true;
     await ctx.answerCbQuery('🆘 Support mode activated!');
     await ctx.editMessageText(
-      '🆘 *Support Request Mode*\\n\\n' +
-      '💬 Please type your support query\\. Your message will be sent directly to our admin team\\!\\n\\n' +
-      '⚡ *Response Time:* Typically within a few hours',
+      escapeMarkdownV2(
+        '🆘 *Support Request Mode*\n\n' +
+        '💬 Please type your support query. Your message will be sent directly to our admin team!\n\n' +
+        '⚡ *Response Time:* Typically within a few hours'
+      ),
       { parse_mode: 'MarkdownV2' }
     );
   }
   else if (data === 'ping_cmd') {
     await ctx.answerCbQuery('🏓 System online!');
-    await ctx.editMessageText('🏓 *Cool Shot AI Status: ONLINE*\\n\\n✅ All systems operational\\!', { parse_mode: 'MarkdownV2' });
+    await ctx.editMessageText(escapeMarkdownV2('🏓 *Cool Shot AI Status: ONLINE*\n\n✅ All systems operational!'), { parse_mode: 'MarkdownV2' });
   }
   else if (data === 'help_cmd') {
     await ctx.answerCbQuery();
     await ctx.replyWithMarkdownV2(
-      "🆘 *Cool Shot AI Help*\\n\\n" +
-      "• Use /start to see welcome\\n• /role to pick your expert mode\\n• /lang for language\\n• /about for info\\n• /reset for a fresh start\\n• /buttons for quick menu\\n• /games for fun activities\\n• /tools for text utilities\\n• /stats for bot statistics\\n• /support <your message> if you need help\\n• /ping to check bot status"
+      escapeMarkdownV2(
+        "🆘 *Cool Shot AI Help*\n\n" +
+        "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+      )
     );
   }
   // New feature callbacks
