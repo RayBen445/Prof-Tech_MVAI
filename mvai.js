@@ -46,6 +46,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs-extra');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { Translate } = require('@google-cloud/translate').v2;
 
 const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
 const app = express();
@@ -345,6 +346,19 @@ try {
   }
 } catch (error) {
   console.log('⚠️ Google Gemini API not available:', error.message);
+}
+
+// Google Translate API Configuration
+let googleTranslate = null;
+try {
+  if (process.env.GOOGLE_API_KEY) {
+    googleTranslate = new Translate({
+      key: process.env.GOOGLE_API_KEY
+    });
+    console.log('🌍 Google Translate API initialized');
+  }
+} catch (error) {
+  console.log('⚠️ Google Translate API not available:', error.message);
 }
 
 // Google Gemini API fallback function
@@ -1592,18 +1606,30 @@ bot.command('translate', async (ctx) => {
   
   let translationResult = null;
   
-  // Try Google Gemini API for translation (Google's AI service for translation)
-  if (geminiAI) {
+  // Try Google Translate API first (dedicated translation service)
+  if (googleTranslate) {
     try {
-      console.log('🔄 Using Google Translate (Gemini AI)...');
+      console.log('🔄 Using Google Translate API...');
+      const [translation] = await googleTranslate.translate(textToTranslate, targetLangCode);
+      translationResult = translation;
+      console.log('✅ Google Translate API successful');
+    } catch (err) {
+      console.error('❌ Google Translate API failed:', err.message);
+    }
+  }
+  
+  // Try Google Gemini AI for translation as fallback (Google's AI service for translation)
+  if (!translationResult && geminiAI) {
+    try {
+      console.log('🔄 Using Google Translate (Gemini AI) as fallback...');
       const translationPrompt = `Translate the following text to ${targetLanguage.label.split(' ')[1]}: "${textToTranslate}". Only provide the translation, no explanations or additional text.`;
       const model = geminiAI.getGenerativeModel({ model: 'gemini-pro' });
       const result = await model.generateContent(translationPrompt);
       const response = await result.response;
       translationResult = response.text();
-      console.log('✅ Google Translate (Gemini AI) successful');
+      console.log('✅ Google Translate (Gemini AI) fallback successful');
     } catch (err) {
-      console.error('❌ Google Translate (Gemini AI) failed:', err.message);
+      console.error('❌ Google Translate (Gemini AI) fallback failed:', err.message);
     }
   }
   
