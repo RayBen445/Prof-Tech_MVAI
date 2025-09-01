@@ -403,17 +403,21 @@ bot.on('text', async (ctx, next) => {
     for (const adminId of getAdminIds()) {
       await bot.telegram.sendMessage(
         adminId,
-        `📩 *New Support Request*\\n\\n` +
-        `👤 **From:** ${escapeMarkdownV2(userName)} \\(${username}\\)\\n` +
-        `🆔 **User ID:** \`${ctx.from.id}\`\\n\\n` +
-        `💬 **Message:**\\n${escapeMarkdownV2(ctx.message.text)}`,
+        escapeMarkdownV2(
+          `📩 *New Support Request*\n\n` +
+          `👤 **From:** ${userName} (${username})\n` +
+          `🆔 **User ID:** \`${ctx.from.id}\`\n\n` +
+          `💬 **Message:**\n${ctx.message.text}`
+        ),
         { parse_mode: 'MarkdownV2' }
       );
     }
     return ctx.replyWithMarkdownV2(
-      '✅ *Support Request Sent*\\n\\n' +
-      '📨 Your message has been forwarded to our admin team\\!\\n' +
-      '⏰ Expect a response soon\\.'
+      escapeMarkdownV2(
+        '✅ *Support Request Sent*\n\n' +
+        '📨 Your message has been forwarded to our admin team!\n' +
+        '⏰ Expect a response soon.'
+      )
     );
   }
 
@@ -426,23 +430,27 @@ bot.on('text', async (ctx, next) => {
     for (const adminId of getAdminIds()) {
       await bot.telegram.sendMessage(
         adminId, 
-        `📩 *Support Request*\\n\\n` +
-        `👤 **From:** ${escapeMarkdownV2(userName)} \\(${username}\\)\\n` +
-        `🆔 **User ID:** \`${ctx.from.id}\`\\n\\n` +
-        `💬 **Message:**\\n${escapeMarkdownV2(supportText)}`,
+        escapeMarkdownV2(
+          `📩 *Support Request*\n\n` +
+          `👤 **From:** ${userName} (${username})\n` +
+          `🆔 **User ID:** \`${ctx.from.id}\`\n\n` +
+          `💬 **Message:**\n${supportText}`
+        ),
         { parse_mode: 'MarkdownV2' }
       );
     }
     return ctx.replyWithMarkdownV2(
-      '✅ *Support Request Sent*\\n\\n' +
-      '📨 Your message has been forwarded to our team\\!\\n' +
-      '⏰ Expect a response soon\\.'
+      escapeMarkdownV2(
+        '✅ *Support Request Sent*\n\n' +
+        '📨 Your message has been forwarded to our team!\n' +
+        '⏰ Expect a response soon.'
+      )
     );
   }
   // Broadcast handler (admin only)
   if (ctx.message.text.startsWith('/broadcast ')) {
     if (!isAdmin(ctx.from.id)) {
-      return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can broadcast messages\\.');
+      return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can broadcast messages.'));
     }
     const msg = ctx.message.text.replace('/broadcast ', '');
     const adminName = ctx.from.first_name || 'Admin';
@@ -450,15 +458,19 @@ bot.on('text', async (ctx, next) => {
     for (const userId of USER_IDS) {
       await bot.telegram.sendMessage(
         userId, 
-        `📢 *Admin Broadcast*\\n\\n` +
-        `👤 **From:** ${escapeMarkdownV2(adminName)}\\n\\n` +
-        `💬 **Message:**\\n${escapeMarkdownV2(msg)}`,
+        escapeMarkdownV2(
+          `📢 *Admin Broadcast*\n\n` +
+          `👤 **From:** ${adminName}\n\n` +
+          `💬 **Message:**\n${msg}`
+        ),
         { parse_mode: 'MarkdownV2' }
       );
     }
     return ctx.replyWithMarkdownV2(
-      '✅ *Broadcast Complete*\\n\\n' +
-      `📤 Message sent to ${USER_IDS.size} users\\!`
+      escapeMarkdownV2(
+        '✅ *Broadcast Complete*\n\n' +
+        `📤 Message sent to ${USER_IDS.size} users!`
+      )
     );
   }
 
@@ -726,7 +738,7 @@ bot.command('apistatus', async (ctx) => {
   await trackCommand('apistatus', ctx.from.id);
   
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can check API status\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can check API status.'));
   }
   
   let message = `🔧 *AI API Status Dashboard*\\n\\n`;
@@ -889,7 +901,7 @@ bot.command('admin', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('admin', ctx.from.id);
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\n🛡️ This command is reserved for administrators only\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\n🛡️ This command is reserved for administrators only.'));
   }
 
   const buttons = [
@@ -943,7 +955,7 @@ bot.command('analytics', async (ctx) => {
   await trackCommand('analytics', ctx.from.id);
   
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view analytics\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can view analytics.'));
   }
   
   const uptime = Math.floor((Date.now() - new Date(analytics.botStartTime)) / (1000 * 60 * 60 * 24));
@@ -992,7 +1004,7 @@ bot.command('activity', async (ctx) => {
   await trackCommand('activity', ctx.from.id);
   
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view user activity\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can view user activity.'));
   }
   
   const args = ctx.message.text.split(' ');
@@ -1086,16 +1098,18 @@ bot.command('tools', async (ctx) => {
   await trackCommand('tools', ctx.from.id);
   
   ctx.replyWithMarkdownV2(
-    '🛠️ *Text Utilities Toolkit*\\n\\n' +
-    '📝 **Available Tools:**\\n' +
-    '• `/count <text>` \\- Count words and characters\\n' +
-    '• `/reverse <text>` \\- Reverse text\\n' +
-    '• `/upper <text>` \\- Convert to UPPERCASE\\n' +
-    '• `/lower <text>` \\- Convert to lowercase\\n' +
-    '• `/title <text>` \\- Convert To Title Case\\n' +
-    '• `/encode <text>` \\- Base64 encode text\\n' +
-    '• `/decode <text>` \\- Base64 decode text\\n\\n' +
-    '💡 *Example:* `/count Hello World` will show character and word count'
+    escapeMarkdownV2(
+      '🛠️ *Text Utilities Toolkit*\n\n' +
+      '📝 **Available Tools:**\n' +
+      '• `/count <text>` - Count words and characters\n' +
+      '• `/reverse <text>` - Reverse text\n' +
+      '• `/upper <text>` - Convert to UPPERCASE\n' +
+      '• `/lower <text>` - Convert to lowercase\n' +
+      '• `/title <text>` - Convert To Title Case\n' +
+      '• `/encode <text>` - Base64 encode text\n' +
+      '• `/decode <text>` - Base64 decode text\n\n' +
+      '💡 *Example:* `/count Hello World` will show character and word count'
+    )
   );
 });
 
@@ -1113,13 +1127,15 @@ bot.command('count', async (ctx) => {
   const charsNoSpaces = text.replace(/\s/g, '').length;
   
   ctx.replyWithMarkdownV2(
-    `📊 *Text Analysis Results*\\n\\n` +
-    `📝 **Text:** "${escapeMarkdownV2(text)}"\\n\\n` +
-    `🔢 **Statistics:**\\n` +
-    `• Words: ${words}\\n` +
-    `• Characters: ${chars}\\n` +
-    `• Characters \\(no spaces\\): ${charsNoSpaces}\\n\\n` +
-    `✨ _Analysis by Cool Shot Systems_`
+    escapeMarkdownV2(
+      `📊 *Text Analysis Results*\n\n` +
+      `📝 **Text:** "${text}"\n\n` +
+      `🔢 **Statistics:**\n` +
+      `• Words: ${words}\n` +
+      `• Characters: ${chars}\n` +
+      `• Characters (no spaces): ${charsNoSpaces}\n\n` +
+      `✨ _Analysis by Cool Shot Systems_`
+    )
   );
 });
 
@@ -1134,10 +1150,12 @@ bot.command('reverse', async (ctx) => {
   
   const reversed = text.split('').reverse().join('');
   ctx.replyWithMarkdownV2(
-    `🔄 *Text Reversal*\\n\\n` +
-    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
-    `🔄 **Reversed:** "${escapeMarkdownV2(reversed)}"\\n\\n` +
-    `✨ _Powered by Cool Shot Systems_`
+    escapeMarkdownV2(
+      `🔄 *Text Reversal*\n\n` +
+      `📝 **Original:** "${text}"\n` +
+      `🔄 **Reversed:** "${reversed}"\n\n` +
+      `✨ _Powered by Cool Shot Systems_`
+    )
   );
 });
 
@@ -1151,10 +1169,12 @@ bot.command('upper', async (ctx) => {
   }
   
   ctx.replyWithMarkdownV2(
-    `🔤 *UPPERCASE CONVERSION*\\n\\n` +
-    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
-    `🔤 **UPPERCASE:** "${escapeMarkdownV2(text.toUpperCase())}"\\n\\n` +
-    `✨ _Powered by Cool Shot Systems_`
+    escapeMarkdownV2(
+      `🔤 *UPPERCASE CONVERSION*\n\n` +
+      `📝 **Original:** "${text}"\n` +
+      `🔤 **UPPERCASE:** "${text.toUpperCase()}"\n\n` +
+      `✨ _Powered by Cool Shot Systems_`
+    )
   );
 });
 
@@ -1168,10 +1188,12 @@ bot.command('lower', async (ctx) => {
   }
   
   ctx.replyWithMarkdownV2(
-    `🔡 *lowercase conversion*\\n\\n` +
-    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
-    `🔡 **lowercase:** "${escapeMarkdownV2(text.toLowerCase())}"\\n\\n` +
-    `✨ _Powered by Cool Shot Systems_`
+    escapeMarkdownV2(
+      `🔡 *lowercase conversion*\n\n` +
+      `📝 **Original:** "${text}"\n` +
+      `🔡 **lowercase:** "${text.toLowerCase()}"\n\n` +
+      `✨ _Powered by Cool Shot Systems_`
+    )
   );
 });
 
@@ -1189,10 +1211,12 @@ bot.command('title', async (ctx) => {
   );
   
   ctx.replyWithMarkdownV2(
-    `📄 *Title Case Conversion*\\n\\n` +
-    `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
-    `📄 **Title Case:** "${escapeMarkdownV2(titleCase)}"\\n\\n` +
-    `✨ _Powered by Cool Shot Systems_`
+    escapeMarkdownV2(
+      `📄 *Title Case Conversion*\n\n` +
+      `📝 **Original:** "${text}"\n` +
+      `📄 **Title Case:** "${titleCase}"\n\n` +
+      `✨ _Powered by Cool Shot Systems_`
+    )
   );
 });
 
@@ -1208,10 +1232,12 @@ bot.command('encode', async (ctx) => {
   try {
     const encoded = Buffer.from(text, 'utf8').toString('base64');
     ctx.replyWithMarkdownV2(
-      `🔐 *Base64 Encoding*\\n\\n` +
-      `📝 **Original:** "${escapeMarkdownV2(text)}"\\n` +
-      `🔐 **Encoded:** \`${escapeMarkdownV2(encoded)}\`\\n\\n` +
-      `✨ _Powered by Cool Shot Systems_`
+      escapeMarkdownV2(
+        `🔐 *Base64 Encoding*\n\n` +
+        `📝 **Original:** "${text}"\n` +
+        `🔐 **Encoded:** \`${encoded}\`\n\n` +
+        `✨ _Powered by Cool Shot Systems_`
+      )
     );
   } catch (error) {
     ctx.reply('❌ Encoding failed. Please check your input.');
@@ -1230,10 +1256,12 @@ bot.command('decode', async (ctx) => {
   try {
     const decoded = Buffer.from(text, 'base64').toString('utf8');
     ctx.replyWithMarkdownV2(
-      `🔓 *Base64 Decoding*\\n\\n` +
-      `🔐 **Encoded:** \`${escapeMarkdownV2(text)}\`\\n` +
-      `🔓 **Decoded:** "${escapeMarkdownV2(decoded)}"\\n\\n` +
-      `✨ _Powered by Cool Shot Systems_`
+      escapeMarkdownV2(
+        `🔓 *Base64 Decoding*\n\n` +
+        `🔐 **Encoded:** \`${text}\`\n` +
+        `🔓 **Decoded:** "${decoded}"\n\n` +
+        `✨ _Powered by Cool Shot Systems_`
+      )
     );
   } catch (error) {
     ctx.reply('❌ Decoding failed. Please provide valid Base64 text.');
@@ -1246,16 +1274,18 @@ bot.command('games', async (ctx) => {
   await trackCommand('games', ctx.from.id);
   
   ctx.replyWithMarkdownV2(
-    '🎮 *Cool Shot Games & Fun*\\n\\n' +
-    '🎲 **Available Games:**\\n' +
-    '• `/dice` \\- Roll a dice \\(1\\-6\\)\\n' +
-    '• `/coin` \\- Flip a coin\\n' +
-    '• `/number` \\- Random number \\(1\\-100\\)\\n' +
-    '• `/8ball <question>` \\- Magic 8\\-ball\\n' +
-    '• `/quote` \\- Get an inspirational quote\\n' +
-    '• `/joke` \\- Random joke\\n' +
-    '• `/fact` \\- Random fun fact\\n\\n' +
-    '🎯 *Example:* `/8ball Will I be successful?`'
+    escapeMarkdownV2(
+      '🎮 *Cool Shot Games & Fun*\n\n' +
+      '🎲 **Available Games:**\n' +
+      '• `/dice` - Roll a dice (1-6)\n' +
+      '• `/coin` - Flip a coin\n' +
+      '• `/number` - Random number (1-100)\n' +
+      '• `/8ball <question>` - Magic 8-ball\n' +
+      '• `/quote` - Get an inspirational quote\n' +
+      '• `/joke` - Random joke\n' +
+      '• `/fact` - Random fun fact\n\n' +
+      '🎯 *Example:* `/8ball Will I be successful?`'
+    )
   );
 });
 
@@ -1267,9 +1297,11 @@ bot.command('dice', async (ctx) => {
   const diceEmoji = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][roll - 1];
   
   ctx.replyWithMarkdownV2(
-    `🎲 *Dice Roll*\\n\\n` +
-    `${diceEmoji} **You rolled:** ${roll}\\n\\n` +
-    `🎯 _Good luck\\!_`
+    escapeMarkdownV2(
+      `🎲 *Dice Roll*\n\n` +
+      `${diceEmoji} **You rolled:** ${roll}\n\n` +
+      `🎯 _Good luck!_`
+    )
   );
 });
 
@@ -1451,7 +1483,7 @@ bot.command('commands', async (ctx) => {
   await trackCommand('commands', ctx.from.id);
   
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view command statistics\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can view command statistics.'));
   }
   
   const sortedCommands = Object.entries(analytics.commandStats)
@@ -1482,7 +1514,7 @@ bot.command('topusers', async (ctx) => {
   await trackCommand('topusers', ctx.from.id);
   
   if (!isAdmin(ctx.from.id)) {
-    return ctx.replyWithMarkdownV2('⛔️ *Access Denied*\\n\\nOnly administrators can view top users\\.');
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can view top users.'));
   }
   
   const userStats = Object.entries(analytics.userActivity)
