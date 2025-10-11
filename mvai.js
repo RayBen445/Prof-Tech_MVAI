@@ -446,6 +446,67 @@ async function downloadMedia(platform, url) {
   }
 }
 
+// Temporary Email API functions
+async function generateTempEmail() {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/tempmail/generate', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted'
+      },
+      timeout: 10000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ TempMail Generate Error:', error.message);
+    return null;
+  }
+}
+
+async function getTempMailInbox(email) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/tempmail/inbox', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        email: email
+      },
+      timeout: 10000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ TempMail Inbox Error:', error.message);
+    return null;
+  }
+}
+
+async function getTempMailMessage(email, messageId) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/tempmail/message', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        email: email,
+        messageid: messageId
+      },
+      timeout: 10000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ TempMail Message Error:', error.message);
+    return null;
+  }
+}
+
 
 // Google Gemini API fallback function with web search capability
 async function callGeminiAPI(prompt, role, lang) {
@@ -776,6 +837,10 @@ bot.command('help', async (ctx) => {
       "• /instagram <url> - Instagram posts/reels\n" +
       "• /twitter <url> - Twitter/X videos\n" +
       "• /tiktok <url> - TikTok videos\n\n" +
+      "📧 *Temporary Email:*\n" +
+      "• /tempmail - TempMail instructions\n" +
+      "• /tempmail_generate - Create temp email\n" +
+      "• /tempmail_inbox <email> - Check inbox\n\n" +
       "🎮 *Entertainment:*\n" +
       "• /games - Fun activities\n" +
       "• /tools - Text utilities\n\n" +
@@ -1359,53 +1424,52 @@ bot.command('adult', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('adult', ctx.from.id);
   
-  // Age verification - check if user is admin or has appropriate permissions
-  // Note: Telegram doesn't provide user age, so we use admin verification as a safety measure
-  if (!isAdmin(ctx.from.id)) {
+  // Provide instructions instead of downloading
+  return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+    '🔞 *Adult Content Download Instructions*\n\n' +
+    '⚠️ WARNING: Adult content commands are available.\n\n' +
+    '*Available Commands:*\n' +
+    '• /xvideos <url> - Download from XVideos\n' +
+    '• /xnxx <url> - Download from XNXX\n\n' +
+    '*Examples:*\n' +
+    '/xvideos https://www.xvideos.com/...\n' +
+    '/xnxx https://www.xnxx.com/...\n\n' +
+    '⚠️ Use responsibly and ensure you comply with local laws.'
+  ));
+});
+
+// XVideos Download (No age restriction)
+bot.command('xvideos', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('xvideos', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/xvideos', '').trim();
+  
+  if (!url || url === '/xvideos') {
     return ctx.replyWithMarkdownV2(escapeMarkdownV2(
-      '🔞 *Age Restricted Content*\n\n' +
-      '⛔️ This command is restricted to verified users only.\n\n' +
-      'For safety reasons, adult content downloads require admin verification.\n' +
-      'Contact the bot administrator if you need access.'
+      '🔞 *XVideos Downloader*\n\n' +
+      'Usage: /xvideos <video_url>\n' +
+      'Example: /xvideos https://www.xvideos.com/...\n\n' +
+      '⚠️ Adult content - Use responsibly'
     ));
-  }
-  
-  const args = ctx.message.text.replace('/adult', '').trim().split(' ');
-  const platform = args[0];
-  const url = args.slice(1).join(' ');
-  
-  if (!platform || !url) {
-    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
-      '🔞 *Adult Content Downloader*\n\n' +
-      '⚠️ WARNING: This command is for adult content only.\n\n' +
-      'Usage: /adult <platform> <url>\n' +
-      'Platforms: xvideos, xnxx\n\n' +
-      'Example:\n' +
-      '/adult xvideos https://...\n\n' +
-      '🔒 Age restricted - Admin verification required'
-    ));
-  }
-  
-  if (!['xvideos', 'xnxx'].includes(platform.toLowerCase())) {
-    return ctx.reply('❌ Invalid platform. Use: xvideos or xnxx');
   }
   
   await ctx.sendChatAction('upload_video');
   
   try {
-    console.log(`🔞 Adult content download requested by admin: ${platform}`);
+    console.log(`🔞 XVideos download requested`);
     const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
       '⏳ *Downloading...*\n\n🔞 Fetching adult content...'
     ));
     
-    const result = await downloadMedia(platform.toLowerCase(), url);
+    const result = await downloadMedia('xvideos', url);
     
     if (result && result.video_url) {
       await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
       await ctx.replyWithVideo(result.video_url, {
-        caption: `🔞 Adult Content\n\n✨ Downloaded by Cool Shot AI\n⚠️ Age Restricted`
+        caption: `🔞 XVideos Content\n\n✨ Downloaded by Cool Shot AI\n⚠️ Adult Content`
       });
-      console.log('✅ Adult content sent successfully');
+      console.log('✅ XVideos content sent successfully');
     } else {
       await ctx.telegram.editMessageText(
         ctx.chat.id,
@@ -1416,7 +1480,204 @@ bot.command('adult', async (ctx) => {
       );
     }
   } catch (error) {
-    console.error('❌ Adult content download error:', error.message);
+    console.error('❌ XVideos download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// XNXX Download (No age restriction)
+bot.command('xnxx', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('xnxx', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/xnxx', '').trim();
+  
+  if (!url || url === '/xnxx') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🔞 *XNXX Downloader*\n\n' +
+      'Usage: /xnxx <video_url>\n' +
+      'Example: /xnxx https://www.xnxx.com/...\n\n' +
+      '⚠️ Adult content - Use responsibly'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`🔞 XNXX download requested`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\n🔞 Fetching adult content...'
+    ));
+    
+    const result = await downloadMedia('xnxx', url);
+    
+    if (result && result.video_url) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithVideo(result.video_url, {
+        caption: `🔞 XNXX Content\n\n✨ Downloaded by Cool Shot AI\n⚠️ Adult Content`
+      });
+      console.log('✅ XNXX content sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the content. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ XNXX download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// Temporary Email Commands
+bot.command('tempmail', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('tempmail', ctx.from.id);
+  
+  return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+    '📧 *Temporary Email Service*\n\n' +
+    '*Available Commands:*\n' +
+    '• /tempmail_generate - Create a new temp email\n' +
+    '• /tempmail_inbox <email> - Check inbox\n' +
+    '• /tempmail_read <email> <message_id> - Read message\n\n' +
+    '✨ Get temporary emails for testing and privacy!'
+  ));
+});
+
+bot.command('tempmail_generate', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('tempmail_generate', ctx.from.id);
+  
+  await ctx.sendChatAction('typing');
+  
+  try {
+    console.log('📧 Generating temporary email');
+    const result = await generateTempEmail();
+    
+    if (result && result.email) {
+      const message = `📧 *Temporary Email Generated*\n\n` +
+        `*Email:* \`${result.email}\`\n\n` +
+        `⏰ *Expires:* ${result.message || '10 minutes'}\n\n` +
+        `*Next Steps:*\n` +
+        `• Use this email for registrations\n` +
+        `• Check inbox with: /tempmail_inbox ${result.email}\n\n` +
+        `✨ _Powered by Cool Shot AI_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ Temp email generated successfully');
+    } else {
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Generation Failed*\n\n' +
+        'Unable to generate temporary email.\n' +
+        'Please try again later.'
+      ));
+    }
+  } catch (error) {
+    console.error('❌ TempMail generate error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+bot.command('tempmail_inbox', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('tempmail_inbox', ctx.from.id);
+  
+  const email = ctx.message.text.replace('/tempmail_inbox', '').trim();
+  
+  if (!email || email === '/tempmail_inbox') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📧 *Check Temp Email Inbox*\n\n' +
+      'Usage: /tempmail_inbox <email>\n' +
+      'Example: /tempmail_inbox whale48121@aminating.com\n\n' +
+      '💡 Generate an email first with /tempmail_generate'
+    ));
+  }
+  
+  await ctx.sendChatAction('typing');
+  
+  try {
+    console.log(`📧 Checking inbox for: ${email}`);
+    const result = await getTempMailInbox(email);
+    
+    if (result && Array.isArray(result) && result.length > 0) {
+      let message = `📧 *Inbox for ${email}*\n\n`;
+      message += `*Messages (${result.length}):*\n\n`;
+      
+      result.slice(0, 10).forEach((msg, index) => {
+        message += `${index + 1}. *From:* ${msg.from || 'Unknown'}\n`;
+        message += `   *Subject:* ${msg.subject || 'No Subject'}\n`;
+        message += `   *ID:* \`${msg.id || msg.messageId}\`\n`;
+        message += `   *Date:* ${msg.date || 'Unknown'}\n\n`;
+      });
+      
+      message += `💡 Read a message: /tempmail_read ${email} <message_id>`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ Inbox retrieved successfully');
+    } else if (result && Array.isArray(result) && result.length === 0) {
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        `📧 *Inbox for ${email}*\n\n` +
+        '📭 No messages yet.\n\n' +
+        'Send a test email to this address and check again.'
+      ));
+    } else {
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Inbox Check Failed*\n\n' +
+        'Unable to retrieve inbox.\n' +
+        'Make sure the email is valid and not expired.'
+      ));
+    }
+  } catch (error) {
+    console.error('❌ TempMail inbox error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+bot.command('tempmail_read', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('tempmail_read', ctx.from.id);
+  
+  const args = ctx.message.text.replace('/tempmail_read', '').trim().split(' ');
+  const email = args[0];
+  const messageId = args.slice(1).join(' ');
+  
+  if (!email || !messageId) {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📧 *Read Temp Email Message*\n\n' +
+      'Usage: /tempmail_read <email> <message_id>\n' +
+      'Example: /tempmail_read whale@aminating.com 12345\n\n' +
+      '💡 Get message ID from /tempmail_inbox'
+    ));
+  }
+  
+  await ctx.sendChatAction('typing');
+  
+  try {
+    console.log(`📧 Reading message ${messageId} for: ${email}`);
+    const result = await getTempMailMessage(email, messageId);
+    
+    if (result) {
+      let message = `📧 *Email Message*\n\n`;
+      message += `*From:* ${result.from || 'Unknown'}\n`;
+      message += `*Subject:* ${result.subject || 'No Subject'}\n`;
+      message += `*Date:* ${result.date || 'Unknown'}\n\n`;
+      message += `*Message:*\n${result.body || result.text || 'No content'}\n\n`;
+      message += `✨ _Cool Shot AI TempMail_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ Message read successfully');
+    } else {
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Message Read Failed*\n\n' +
+        'Unable to retrieve the message.\n' +
+        'Please check the email and message ID.'
+      ));
+    }
+  } catch (error) {
+    console.error('❌ TempMail read error:', error.message);
     ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
   }
 });
