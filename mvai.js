@@ -373,6 +373,50 @@ async function performWebSearch(query) {
   }
 }
 
+// Vision API function for image description
+async function describeImage(imageUrl, prompt = "Describe in detail what is in the picture") {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/ai/vision', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        url: imageUrl,
+        prompt: prompt
+      },
+      timeout: 15000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Vision API Error:', error.message);
+    return null;
+  }
+}
+
+// Image Generation API function
+async function generateImage(prompt) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/ai/fluximg', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        prompt: prompt
+      },
+      timeout: 60000 // Image generation takes longer
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Image Generation API Error:', error.message);
+    return null;
+  }
+}
+
+
 // Google Gemini API fallback function with web search capability
 async function callGeminiAPI(prompt, role, lang) {
   if (!geminiAI) {
@@ -690,7 +734,7 @@ bot.command('help', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       "🆘 *Cool Shot AI Help*\n\n" +
-      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /search <query> for web search\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /search <query> for web search\n• /describe for AI image description\n• /imagine <prompt> for AI image generation\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
     )
   );
 });
@@ -901,6 +945,156 @@ bot.command('search', async (ctx) => {
     ctx.replyWithMarkdownV2(escapeMarkdownV2(
       '❌ *Error*\n\n' +
       'An error occurred while searching.\n' +
+      'Please try again.'
+    ));
+  }
+});
+
+// Describe Image Command - AI Vision
+bot.command('describe', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('describe', ctx.from.id);
+  
+  const args = ctx.message.text.replace('/describe', '').trim();
+  
+  // Check if there's a photo in the message
+  if (ctx.message.photo && ctx.message.photo.length > 0) {
+    // Get the highest quality photo
+    const photo = ctx.message.photo[ctx.message.photo.length - 1];
+    const fileLink = await ctx.telegram.getFileLink(photo.file_id);
+    const imageUrl = fileLink.href;
+    const customPrompt = args || "Describe in detail what is in the picture, including objects, atmosphere and mood of the picture";
+    
+    await ctx.sendChatAction('typing');
+    
+    try {
+      console.log(`👁️ Vision API requested for image: ${imageUrl}`);
+      const description = await describeImage(imageUrl, customPrompt);
+      
+      if (description) {
+        const message = `👁️ *Image Description*\n\n${description}\n\n✨ _Powered by Cool Shot AI Vision_`;
+        ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+        console.log('✅ Image description sent successfully');
+      } else {
+        ctx.replyWithMarkdownV2(escapeMarkdownV2(
+          '❌ *Description Failed*\n\n' +
+          'Unable to analyze the image at this time.\n' +
+          'Please try again later.'
+        ));
+      }
+    } catch (error) {
+      console.error('❌ Describe command error:', error.message);
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Error*\n\n' +
+        'An error occurred while analyzing the image.\n' +
+        'Please try again.'
+      ));
+    }
+  } else if (args.startsWith('http')) {
+    // URL provided
+    const parts = args.split(' ');
+    const imageUrl = parts[0];
+    const customPrompt = parts.slice(1).join(' ') || "Describe in detail what is in the picture, including objects, atmosphere and mood of the picture";
+    
+    await ctx.sendChatAction('typing');
+    
+    try {
+      console.log(`👁️ Vision API requested for URL: ${imageUrl}`);
+      const description = await describeImage(imageUrl, customPrompt);
+      
+      if (description) {
+        const message = `👁️ *Image Description*\n\n${description}\n\n✨ _Powered by Cool Shot AI Vision_`;
+        ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+        console.log('✅ Image description sent successfully');
+      } else {
+        ctx.replyWithMarkdownV2(escapeMarkdownV2(
+          '❌ *Description Failed*\n\n' +
+          'Unable to analyze the image at this time.\n' +
+          'Please try again later.'
+        ));
+      }
+    } catch (error) {
+      console.error('❌ Describe command error:', error.message);
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Error*\n\n' +
+        'An error occurred while analyzing the image.\n' +
+        'Please try again.'
+      ));
+    }
+  } else {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '👁️ *AI Vision - Image Description*\n\n' +
+      'Usage:\n' +
+      '• Send a photo with caption: /describe [optional custom prompt]\n' +
+      '• Or: /describe <image_url> [optional custom prompt]\n\n' +
+      'Examples:\n' +
+      '• Send photo with: /describe\n' +
+      '• Send photo with: /describe What objects are in this image?\n' +
+      '• /describe https://example.com/image.jpg\n' +
+      '• /describe https://example.com/image.jpg Describe the colors\n\n' +
+      '✨ Get AI-powered image descriptions!'
+    ));
+  }
+});
+
+// Imagine Command - AI Image Generation
+bot.command('imagine', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('imagine', ctx.from.id);
+  
+  const prompt = ctx.message.text.replace('/imagine', '').trim();
+  
+  if (!prompt || prompt === '/imagine') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🎨 *AI Image Generation*\n\n' +
+      'Usage: /imagine <your prompt>\n' +
+      'Example: /imagine Logo for car\n' +
+      'Example: /imagine Beautiful sunset over mountains\n\n' +
+      '✨ Create images with AI!'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_photo');
+  
+  try {
+    console.log(`🎨 Image generation requested: "${prompt}"`);
+    
+    // Send a "processing" message
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🎨 *Generating Image...*\n\n' +
+      `Prompt: "${prompt}"\n\n` +
+      '⏳ This may take 30-60 seconds. Please wait...'
+    ));
+    
+    const imageUrl = await generateImage(prompt);
+    
+    if (imageUrl) {
+      // Delete the processing message
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      // Send the generated image
+      await ctx.replyWithPhoto(imageUrl, {
+        caption: `🎨 Generated Image\n\nPrompt: "${prompt}"\n\n✨ Powered by Cool Shot AI`
+      });
+      console.log('✅ Generated image sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2(
+          '❌ *Generation Failed*\n\n' +
+          'Unable to generate the image at this time.\n' +
+          'Please try again later.'
+        ),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Imagine command error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '❌ *Error*\n\n' +
+      'An error occurred while generating the image.\n' +
       'Please try again.'
     ));
   }
