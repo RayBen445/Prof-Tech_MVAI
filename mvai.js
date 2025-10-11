@@ -686,9 +686,9 @@ bot.on('text', async (ctx, next) => {
         adminId,
         escapeMarkdownV2(
           `📩 *New Support Request*\n\n` +
-          `👤 **From:** ${userName} (${username})\n` +
-          `🆔 **User ID:** \`${ctx.from.id}\`\n\n` +
-          `💬 **Message:**\n${ctx.message.text}`
+          `👤 *From:* ${userName} (${username})\n` +
+          `🆔 *User ID:* \`${ctx.from.id}\`\n\n` +
+          `💬 *Message:*\n${ctx.message.text}`
         ),
         { parse_mode: 'MarkdownV2' }
       );
@@ -713,9 +713,9 @@ bot.on('text', async (ctx, next) => {
         adminId, 
         escapeMarkdownV2(
           `📩 *Support Request*\n\n` +
-          `👤 **From:** ${userName} (${username})\n` +
-          `🆔 **User ID:** \`${ctx.from.id}\`\n\n` +
-          `💬 **Message:**\n${supportText}`
+          `👤 *From:* ${userName} (${username})\n` +
+          `🆔 *User ID:* \`${ctx.from.id}\`\n\n` +
+          `💬 *Message:*\n${supportText}`
         ),
         { parse_mode: 'MarkdownV2' }
       );
@@ -741,8 +741,8 @@ bot.on('text', async (ctx, next) => {
         userId, 
         escapeMarkdownV2(
           `📢 *Admin Broadcast*\n\n` +
-          `👤 **From:** ${adminName}\n\n` +
-          `💬 **Message:**\n${msg}`
+          `👤 *From:* ${adminName}\n\n` +
+          `💬 *Message:*\n${msg}`
         ),
         { parse_mode: 'MarkdownV2' }
       );
@@ -2341,7 +2341,7 @@ bot.command('users', async (ctx) => {
   const adminUsers = userList.filter(user => user.isAdmin);
   
   let message = `👥 *User Database* (${totalUsers} users)\n\n`;
-  message += `🛡️ **Admins (${adminUsers.length}):**\n`;
+  message += `🛡️ *Admins (${adminUsers.length}):*\n`;
   
   adminUsers.forEach((user, index) => {
     const name = user.firstName || 'Unknown';
@@ -2350,7 +2350,7 @@ bot.command('users', async (ctx) => {
     message += `${index + 1}. ${name} (${username}) - ID: \`${user.id}\`${isPrimary}\n`;
   });
   
-  message += `\n👤 **Regular Users (${totalUsers - adminUsers.length}):**\n`;
+  message += `\n👤 *Regular Users (${totalUsers - adminUsers.length}):*\n`;
   const regularUsers = userList.filter(user => !user.isAdmin).slice(0, 20); // Limit to first 20
   
   regularUsers.forEach((user, index) => {
@@ -2646,18 +2646,16 @@ bot.command('tools', async (ctx) => {
   await trackCommand('tools', ctx.from.id);
   
   ctx.replyWithMarkdownV2(
-    escapeMarkdownV2(
-      '🛠️ *Text Utilities Toolkit*\n\n' +
-      '📝 **Available Tools:**\n' +
-      '• `/count <text>` - Count words and characters\n' +
-      '• `/reverse <text>` - Reverse text\n' +
-      '• `/upper <text>` - Convert to UPPERCASE\n' +
-      '• `/lower <text>` - Convert to lowercase\n' +
-      '• `/title <text>` - Convert To Title Case\n' +
-      '• `/encode <text>` - Base64 encode text\n' +
-      '• `/decode <text>` - Base64 decode text\n\n' +
-      '💡 *Example:* `/count Hello World` will show character and word count'
-    )
+    '🛠️ *Text Utilities Toolkit*\n\n' +
+    '📝 *Available Tools:*\n' +
+    '• `/count <text>` \\- Count words and characters\n' +
+    '• `/reverse <text>` \\- Reverse text\n' +
+    '• `/upper <text>` \\- Convert to UPPERCASE\n' +
+    '• `/lower <text>` \\- Convert to lowercase\n' +
+    '• `/title <text>` \\- Convert To Title Case\n' +
+    '• `/encode <text>` \\- Base64 encode text\n' +
+    '• `/decode <text>` \\- Base64 decode text\n\n' +
+    '💡 *Example:* `/count Hello World` will show character and word count'
   );
 });
 
@@ -2677,8 +2675,8 @@ bot.command('count', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `📊 *Text Analysis Results*\n\n` +
-      `📝 **Text:** "${text}"\n\n` +
-      `🔢 **Statistics:**\n` +
+      `📝 *Text:* "${text}"\n\n` +
+      `🔢 *Statistics:*\n` +
       `• Words: ${words}\n` +
       `• Characters: ${chars}\n` +
       `• Characters (no spaces): ${charsNoSpaces}\n\n` +
@@ -2700,8 +2698,8 @@ bot.command('reverse', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🔄 *Text Reversal*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `🔄 **Reversed:** "${reversed}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `🔄 *Reversed:* "${reversed}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -2719,8 +2717,8 @@ bot.command('upper', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🔤 *UPPERCASE CONVERSION*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `🔤 **UPPERCASE:** "${text.toUpperCase()}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `🔤 *UPPERCASE:* "${text.toUpperCase()}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -2738,8 +2736,8 @@ bot.command('lower', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🔡 *lowercase conversion*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `🔡 **lowercase:** "${text.toLowerCase()}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `🔡 *lowercase:* "${text.toLowerCase()}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -2761,8 +2759,8 @@ bot.command('title', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `📄 *Title Case Conversion*\n\n` +
-      `📝 **Original:** "${text}"\n` +
-      `📄 **Title Case:** "${titleCase}"\n\n` +
+      `📝 *Original:* "${text}"\n` +
+      `📄 *Title Case:* "${titleCase}"\n\n` +
       `✨ _Powered by Cool Shot Systems_`
     )
   );
@@ -2782,8 +2780,8 @@ bot.command('encode', async (ctx) => {
     ctx.replyWithMarkdownV2(
       escapeMarkdownV2(
         `🔐 *Base64 Encoding*\n\n` +
-        `📝 **Original:** "${text}"\n` +
-        `🔐 **Encoded:** \`${encoded}\`\n\n` +
+        `📝 *Original:* "${text}"\n` +
+        `🔐 *Encoded:* \`${encoded}\`\n\n` +
         `✨ _Powered by Cool Shot Systems_`
       )
     );
@@ -2806,8 +2804,8 @@ bot.command('decode', async (ctx) => {
     ctx.replyWithMarkdownV2(
       escapeMarkdownV2(
         `🔓 *Base64 Decoding*\n\n` +
-        `🔐 **Encoded:** \`${text}\`\n` +
-        `🔓 **Decoded:** "${decoded}"\n\n` +
+        `🔐 *Encoded:* \`${text}\`\n` +
+        `🔓 *Decoded:* "${decoded}"\n\n` +
         `✨ _Powered by Cool Shot Systems_`
       )
     );
@@ -2824,14 +2822,20 @@ bot.command('games', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       '🎮 *Cool Shot Games & Fun*\n\n' +
-      '🎲 **Available Games:**\n' +
+      '🎲 *Available Games:*\n' +
       '• `/dice` - Roll a dice (1-6)\n' +
       '• `/coin` - Flip a coin\n' +
       '• `/number` - Random number (1-100)\n' +
       '• `/8ball <question>` - Magic 8-ball\n' +
       '• `/quote` - Get an inspirational quote\n' +
       '• `/joke` - Random joke\n' +
-      '• `/fact` - Random fun fact\n\n' +
+      '• `/fact` - Random fun fact\n' +
+      '• `/advice` - Get wise advice\n' +
+      '• `/pickupline` - Funny pickup line\n' +
+      '• `/flirt` - Flirty message\n' +
+      '• `/valentine` - Valentine message\n' +
+      '• `/love` - Love message\n' +
+      '• `/thankyou` - Thank you message\n\n' +
       '🎯 *Example:* `/8ball Will I be successful?`'
     )
   );
@@ -2847,7 +2851,7 @@ bot.command('dice', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       `🎲 *Dice Roll*\n\n` +
-      `${diceEmoji} **You rolled:** ${roll}\n\n` +
+      `${diceEmoji} *You rolled:* ${roll}\n\n` +
       `🎯 _Good luck!_`
     )
   );
@@ -2903,9 +2907,9 @@ bot.command('8ball', async (ctx) => {
   const answer = responses[Math.floor(Math.random() * responses.length)];
   
   ctx.replyWithMarkdownV2(
-    `🎱 *Magic 8\\-Ball*\\n\\n` +
-    `❓ **Question:** "${escapeMarkdownV2(question)}"\\n` +
-    `🔮 **Answer:** *${escapeMarkdownV2(answer)}*\\n\\n` +
+    `🎱 *Magic 8\\-Ball*\n\n` +
+    `❓ *Question:* "${escapeMarkdownV2(question)}"\n` +
+    `🔮 *Answer:* *${escapeMarkdownV2(answer)}*\n\n` +
     `✨ _The magic 8\\-ball has spoken\\!_`
   );
 });
@@ -2914,53 +2918,82 @@ bot.command('quote', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('quote', ctx.from.id);
   
-  const quotes = [
-    { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
-    { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
-    { text: "Life is what happens to you while you're busy making other plans.", author: "John Lennon" },
-    { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
-    { text: "It is during our darkest moments that we must focus to see the light.", author: "Aristotle" },
-    { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
-    { text: "The only impossible journey is the one you never begin.", author: "Tony Robbins" },
-    { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
-    { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
-    { text: "Quality is not an act, it is a habit.", author: "Aristotle" }
-  ];
-  
-  const quote = quotes[Math.floor(Math.random() * quotes.length)];
-  
-  ctx.replyWithMarkdownV2(
-    `💎 *Inspirational Quote*\\n\\n` +
-    `"${escapeMarkdownV2(quote.text)}"\\n\\n` +
-    `👤 *— ${escapeMarkdownV2(quote.author)}*\\n\\n` +
-    `✨ _Inspiration by Cool Shot Systems_`
-  );
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/quotes', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && data.result) {
+      const quote = data.result.quote || data.result;
+      const author = data.result.author || 'Unknown';
+      
+      ctx.replyWithMarkdownV2(
+        `💎 *Inspirational Quote*\n\n` +
+        `"${escapeMarkdownV2(quote)}"\n\n` +
+        `👤 *— ${escapeMarkdownV2(author)}*\n\n` +
+        `✨ _Inspiration by Cool Shot Systems_`
+      );
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Quote API error:', error.message);
+    // Fallback to hardcoded quotes
+    const quotes = [
+      { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+      { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
+      { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" }
+    ];
+    const quote = quotes[Math.floor(Math.random() * quotes.length)];
+    ctx.replyWithMarkdownV2(
+      `💎 *Inspirational Quote*\n\n` +
+      `"${escapeMarkdownV2(quote.text)}"\n\n` +
+      `👤 *— ${escapeMarkdownV2(quote.author)}*\n\n` +
+      `✨ _Inspiration by Cool Shot Systems_`
+    );
+  }
 });
 
 bot.command('joke', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('joke', ctx.from.id);
   
-  const jokes = [
-    "Why don't scientists trust atoms? Because they make up everything!",
-    "Why did the programmer quit his job? Because he didn't get arrays!",
-    "How do you organize a space party? You planet!",
-    "Why don't eggs tell jokes? They'd crack each other up!",
-    "What do you call a fake noodle? An impasta!",
-    "Why did the math book look so sad? Because it had too many problems!",
-    "What's the best thing about Switzerland? I don't know, but the flag is a big plus!",
-    "Why do programmers prefer dark mode? Because light attracts bugs!",
-    "How does a penguin build its house? Igloos it together!",
-    "Why don't robots ever panic? They have nerves of steel!"
-  ];
-  
-  const joke = jokes[Math.floor(Math.random() * jokes.length)];
-  
-  const message = `😂 *Random Joke*\n\n` +
-    `🎭 ${joke}\n\n` +
-    `😄 _Hope that made you smile!_`;
-  
-  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+  try {
+    // Randomly select between the two joke API endpoints
+    const apiEndpoints = [
+      'https://api.giftedtech.co.ke/api/fun/jokes',
+      'https://api.giftedtech.co.ke/api/fun/jokes'
+    ];
+    const selectedApi = apiEndpoints[Math.floor(Math.random() * apiEndpoints.length)];
+    
+    const { data } = await axios.get(selectedApi, {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.joke)) {
+      const joke = data.result || data.joke;
+      const message = `😂 *Random Joke*\n\n` +
+        `🎭 ${joke}\n\n` +
+        `😄 _Hope that made you smile!_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Joke API error:', error.message);
+    // Fallback to hardcoded jokes
+    const jokes = [
+      "Why don't scientists trust atoms? Because they make up everything!",
+      "Why did the programmer quit his job? Because he didn't get arrays!",
+      "How do you organize a space party? You planet!"
+    ];
+    const joke = jokes[Math.floor(Math.random() * jokes.length)];
+    const message = `😂 *Random Joke*\n\n` +
+      `🎭 ${joke}\n\n` +
+      `😄 _Hope that made you smile!_`;
+    ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+  }
 });
 
 bot.command('fact', async (ctx) => {
@@ -2987,6 +3020,162 @@ bot.command('fact', async (ctx) => {
     `🤓 _Learn something new every day!_`;
   
   ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+});
+
+// Advice Command - NEW
+bot.command('advice', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('advice', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/advice', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.advice)) {
+      const advice = data.result || data.advice;
+      const message = `💡 *Wise Advice*\n\n` +
+        `🌟 ${advice}\n\n` +
+        `🎯 _Guidance by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Advice API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch advice at the moment. Please try again later.');
+  }
+});
+
+// Pickup Line Command - NEW
+bot.command('pickupline', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('pickupline', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/pickupline', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.pickupline)) {
+      const line = data.result || data.pickupline;
+      const message = `😏 *Pickup Line*\n\n` +
+        `💘 ${line}\n\n` +
+        `😉 _Use at your own risk!_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Pickup Line API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch pickup line at the moment. Please try again later.');
+  }
+});
+
+// Flirt Command - NEW
+bot.command('flirt', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('flirt', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/flirt', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.flirt)) {
+      const flirt = data.result || data.flirt;
+      const message = `💕 *Flirty Message*\n\n` +
+        `💝 ${flirt}\n\n` +
+        `😘 _Sweet talk by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Flirt API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch flirt message at the moment. Please try again later.');
+  }
+});
+
+// Valentine Command - NEW
+bot.command('valentine', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('valentine', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/valentines', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.valentine)) {
+      const valentine = data.result || data.valentine;
+      const message = `💖 *Valentine Message*\n\n` +
+        `💐 ${valentine}\n\n` +
+        `💗 _Love from Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Valentine API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch valentine message at the moment. Please try again later.');
+  }
+});
+
+// Love Command - NEW
+bot.command('love', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('love', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/love', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.love)) {
+      const love = data.result || data.love;
+      const message = `❤️ *Love Message*\n\n` +
+        `💞 ${love}\n\n` +
+        `💕 _Romance by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Love API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch love message at the moment. Please try again later.');
+  }
+});
+
+// Thank You Command - NEW
+bot.command('thankyou', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('thankyou', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/thankyou', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.thankyou)) {
+      const thanks = data.result || data.thankyou;
+      const message = `🙏 *Thank You Message*\n\n` +
+        `💝 ${thanks}\n\n` +
+        `✨ _Gratitude by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Thank You API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch thank you message at the moment. Please try again later.');
+  }
 });
 
 // Bot Stats Command (Enhanced)
@@ -3038,20 +3227,20 @@ bot.command('commands', async (ctx) => {
     .sort(([,a], [,b]) => b - a)
     .slice(0, 15);
   
-  let message = `⚡ *Command Usage Statistics*\\n\\n`;
-  message += `📊 **Total Commands Executed:** ${analytics.totalCommands}\\n\\n`;
-  message += `🏆 **Top Commands:**\\n`;
+  let message = `⚡ *Command Usage Statistics*\n\n`;
+  message += `📊 *Total Commands Executed:* ${analytics.totalCommands}\n\n`;
+  message += `🏆 *Top Commands:*\n`;
   
   sortedCommands.forEach(([command, count], index) => {
     const percentage = ((count / analytics.totalCommands) * 100).toFixed(1);
-    message += `${index + 1}\\. /${escapeMarkdownV2(command)} \\- ${count} uses \\(${percentage}%\\)\\n`;
+    message += `${index + 1}\\. /${escapeMarkdownV2(command)} \\- ${count} uses \\(${percentage}%\\)\n`;
   });
   
   if (sortedCommands.length === 0) {
     message += `No command data available yet\\.`;
   }
   
-  message += `\\n✨ _Analytics by Cool Shot Systems_`;
+  message += `\n✨ _Analytics by Cool Shot Systems_`;
   
   ctx.replyWithMarkdownV2(message);
 });
@@ -3076,14 +3265,14 @@ bot.command('topusers', async (ctx) => {
     .sort((a, b) => b.total - a.total)
     .slice(0, 10);
   
-  let message = `👑 *Most Active Users*\\n\\n`;
+  let message = `👑 *Most Active Users*\n\n`;
   
   userStats.forEach((entry, index) => {
     const name = entry.user.firstName || 'Unknown';
     const username = entry.user.username ? `@${entry.user.username}` : 'No username';
     const isAdminBadge = entry.user.isAdmin ? ' 🛡️' : '';
-    message += `${index + 1}\\. ${escapeMarkdownV2(name)} \\(${escapeMarkdownV2(username)}\\)${isAdminBadge}\\n`;
-    message += `   💬 ${entry.messages} msgs \\| ⚡ ${entry.commands} cmds \\| 🎯 ${entry.total} total\\n\\n`;
+    message += `${index + 1}\\. ${escapeMarkdownV2(name)} \\(${escapeMarkdownV2(username)}\\)${isAdminBadge}\n`;
+    message += `   💬 ${entry.messages} msgs \\| ⚡ ${entry.commands} cmds \\| 🎯 ${entry.total} total\n\n`;
   });
   
   if (userStats.length === 0) {
@@ -3206,15 +3395,21 @@ bot.on('callback_query', async (ctx) => {
   // New feature callbacks
   else if (data === 'show_games') {
     await ctx.editMessageText(
-      '🎮 *Cool Shot Games & Fun*\\n\\n' +
-      '🎲 **Available Games:**\\n' +
-      '• `/dice` \\- Roll a dice \\(1\\-6\\)\\n' +
-      '• `/coin` \\- Flip a coin\\n' +
-      '• `/number` \\- Random number \\(1\\-100\\)\\n' +
-      '• `/8ball <question>` \\- Magic 8\\-ball\\n' +
-      '• `/quote` \\- Get an inspirational quote\\n' +
-      '• `/joke` \\- Random joke\\n' +
-      '• `/fact` \\- Random fun fact\\n\\n' +
+      '🎮 *Cool Shot Games & Fun*\n\n' +
+      '🎲 *Available Games:*\n' +
+      '• `/dice` \\- Roll a dice \\(1\\-6\\)\n' +
+      '• `/coin` \\- Flip a coin\n' +
+      '• `/number` \\- Random number \\(1\\-100\\)\n' +
+      '• `/8ball <question>` \\- Magic 8\\-ball\n' +
+      '• `/quote` \\- Get an inspirational quote\n' +
+      '• `/joke` \\- Random joke\n' +
+      '• `/fact` \\- Random fun fact\n' +
+      '• `/advice` \\- Get wise advice\n' +
+      '• `/pickupline` \\- Funny pickup line\n' +
+      '• `/flirt` \\- Flirty message\n' +
+      '• `/valentine` \\- Valentine message\n' +
+      '• `/love` \\- Love message\n' +
+      '• `/thankyou` \\- Thank you message\n\n' +
       '🎯 *Example:* `/8ball Will I be successful?`',
       { parse_mode: 'MarkdownV2' }
     );
@@ -3222,15 +3417,15 @@ bot.on('callback_query', async (ctx) => {
   }
   else if (data === 'show_tools') {
     await ctx.editMessageText(
-      '🛠️ *Text Utilities Toolkit*\\n\\n' +
-      '📝 **Available Tools:**\\n' +
-      '• `/count <text>` \\- Count words and characters\\n' +
-      '• `/reverse <text>` \\- Reverse text\\n' +
-      '• `/upper <text>` \\- Convert to UPPERCASE\\n' +
-      '• `/lower <text>` \\- Convert to lowercase\\n' +
-      '• `/title <text>` \\- Convert To Title Case\\n' +
-      '• `/encode <text>` \\- Base64 encode text\\n' +
-      '• `/decode <text>` \\- Base64 decode text\\n\\n' +
+      '🛠️ *Text Utilities Toolkit*\n\n' +
+      '📝 *Available Tools:*\n' +
+      '• `/count <text>` \\- Count words and characters\n' +
+      '• `/reverse <text>` \\- Reverse text\n' +
+      '• `/upper <text>` \\- Convert to UPPERCASE\n' +
+      '• `/lower <text>` \\- Convert to lowercase\n' +
+      '• `/title <text>` \\- Convert To Title Case\n' +
+      '• `/encode <text>` \\- Base64 encode text\n' +
+      '• `/decode <text>` \\- Base64 decode text\n\n' +
       '💡 *Example:* `/count Hello World` will show character and word count',
       { parse_mode: 'MarkdownV2' }
     );
@@ -3254,16 +3449,16 @@ bot.on('callback_query', async (ctx) => {
     const langLabel = languages.find(l => l.code === userLang)?.label || '🇬🇧 English';
     
     await ctx.editMessageText(
-      `📊 *Cool Shot AI Statistics*\\n\\n` +
-      `⏰ **Bot Uptime:** ${uptimeDays}d ${uptimeHours}h\\n` +
-      `👥 **Total Users:** ${totalUsers}\\n` +
-      `🛡️ **Administrators:** ${totalAdmins}\\n` +
-      `🎯 **Active Today:** ${activeToday}\\n` +
-      `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-      `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-      `👤 **Your Settings:**\\n` +
-      `🧠 Role: ${escapeMarkdownV2(userRole)}\\n` +
-      `🌐 Language: ${escapeMarkdownV2(langLabel)}\\n\\n` +
+      `📊 *Cool Shot AI Statistics*\n\n` +
+      `⏰ *Bot Uptime:* ${uptimeDays}d ${uptimeHours}h\n` +
+      `👥 *Total Users:* ${totalUsers}\n` +
+      `🛡️ *Administrators:* ${totalAdmins}\n` +
+      `🎯 *Active Today:* ${activeToday}\n` +
+      `💬 *Total Messages:* ${analytics.totalMessages}\n` +
+      `⚡ *Total Commands:* ${analytics.totalCommands}\n\n` +
+      `👤 *Your Settings:*\n` +
+      `🧠 Role: ${escapeMarkdownV2(userRole)}\n` +
+      `🌐 Language: ${escapeMarkdownV2(langLabel)}\n\n` +
       `✨ _Powered by Cool Shot Systems_`,
       { parse_mode: 'MarkdownV2' }
     );
@@ -3288,7 +3483,7 @@ bot.on('callback_query', async (ctx) => {
       buttons.push([{ text: '👥 Manage Users', callback_data: 'admin_users' }]);
     }
     
-    await ctx.editMessageText('🛡️ *Admin Control Panel*\\n\\n✨ Welcome to the administrative dashboard\\!', {
+    await ctx.editMessageText('🛡️ *Admin Control Panel*\n\n✨ Welcome to the administrative dashboard\\!', {
       reply_markup: {
         inline_keyboard: buttons
       },
@@ -3308,11 +3503,11 @@ bot.on('callback_query', async (ctx) => {
     const langsSet = Object.keys(userLanguages).length;
     
     await ctx.editMessageText(
-      `📊 *System Statistics*\\n\\n` +
-      `👥 **Total Users:** ${totalUsers}\\n` +
-      `🛡️ **Administrators:** ${adminCount}\\n` +
-      `🧠 **Custom Roles Set:** ${rolesSet}\\n` +
-      `🌍 **Languages Set:** ${langsSet}\\n\\n` +
+      `📊 *System Statistics*\n\n` +
+      `👥 *Total Users:* ${totalUsers}\n` +
+      `🛡️ *Administrators:* ${adminCount}\n` +
+      `🧠 *Custom Roles Set:* ${rolesSet}\n` +
+      `🌍 *Languages Set:* ${langsSet}\n\n` +
       `✨ *System Status:* All operational`,
       { parse_mode: 'MarkdownV2' }
     );
@@ -3364,9 +3559,9 @@ bot.on('callback_query', async (ctx) => {
       return;
     }
     await ctx.editMessageText(
-      '📢 *Broadcast System*\\n\\n' +
-      '💡 To send a message to all users:\\n' +
-      '`/broadcast <your message>`\\n\\n' +
+      '📢 *Broadcast System*\n\n' +
+      '💡 To send a message to all users:\n' +
+      '`/broadcast <your message>`\n\n' +
       '📤 Your message will be delivered to all registered users\\.',
       { parse_mode: 'MarkdownV2' }
     );
@@ -3379,8 +3574,8 @@ bot.on('callback_query', async (ctx) => {
       return;
     }
     await ctx.editMessageText(
-      '🆘 *Support Request System*\\n\\n' +
-      '💬 Support requests are forwarded directly to your Telegram DMs\\n\\n' +
+      '🆘 *Support Request System*\n\n' +
+      '💬 Support requests are forwarded directly to your Telegram DMs\n\n' +
       '📨 Check your private messages for incoming support queries\\.',
       { parse_mode: 'MarkdownV2' }
     );
@@ -3397,13 +3592,13 @@ bot.on('callback_query', async (ctx) => {
       .sort(([,a], [,b]) => b - a)
       .slice(0, 10);
     
-    let message = `⚡ *Command Usage Statistics*\\n\\n`;
-    message += `📊 **Total Commands:** ${analytics.totalCommands}\\n\\n`;
-    message += `🏆 **Top Commands:**\\n`;
+    let message = `⚡ *Command Usage Statistics*\n\n`;
+    message += `📊 *Total Commands:* ${analytics.totalCommands}\n\n`;
+    message += `🏆 *Top Commands:*\n`;
     
     sortedCommands.forEach(([command, count], index) => {
       const percentage = ((count / analytics.totalCommands) * 100).toFixed(1);
-      message += `${index + 1}\\. /${escapeMarkdownV2(command)} \\- ${count} uses \\(${percentage}%\\)\\n`;
+      message += `${index + 1}\\. /${escapeMarkdownV2(command)} \\- ${count} uses \\(${percentage}%\\)\n`;
     });
     
     if (sortedCommands.length === 0) {
@@ -3466,26 +3661,26 @@ bot.on('callback_query', async (ctx) => {
       .sort(([,a], [,b]) => b - a)
       .slice(0, 5)
       .map(([cmd, count], i) => `${i + 1}\\. /${escapeMarkdownV2(cmd)} \\(${count}\\)`)
-      .join('\\n');
+      .join('\n');
     
     await ctx.editMessageText(
-      `📊 *Full Analytics Dashboard*\\n\\n` +
-      `⏰ **Uptime:** ${uptime} days\\n` +
-      `👥 **Total Users:** ${totalUsers}\\n` +
-      `🎯 **Active Today:** ${activeToday}\\n` +
-      `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-      `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-      `🏆 **Top Commands:**\\n${topCommands || 'No data'}\\n\\n` +
+      `📊 *Full Analytics Dashboard*\n\n` +
+      `⏰ *Uptime:* ${uptime} days\n` +
+      `👥 *Total Users:* ${totalUsers}\n` +
+      `🎯 *Active Today:* ${activeToday}\n` +
+      `💬 *Total Messages:* ${analytics.totalMessages}\n` +
+      `⚡ *Total Commands:* ${analytics.totalCommands}\n\n` +
+      `🏆 *Top Commands:*\n${topCommands || 'No data'}\n\n` +
       `✨ _Full analytics for RayBen445_`,
       { parse_mode: 'MarkdownV2' }
     );
     ctx.answerCbQuery('📊 Full analytics loaded');
   }
   else if (data === 'admin_api_status') {
-    let message = `🔧 *AI API Status Dashboard*\\n\\n`;
+    let message = `🔧 *AI API Status Dashboard*\n\n`;
     
     // Check primary APIs
-    message += `🎯 **Primary APIs \\(${aiAPIs.length}\\):**\\n`;
+    message += `🎯 *Primary APIs \\(${aiAPIs.length}\\):*\n`;
     for (let i = 0; i < aiAPIs.length; i++) {
       const url = aiAPIs[i];
       const apiName = url.includes('gpt4o') ? 'GPT\\-4o' : 
@@ -3493,27 +3688,27 @@ bot.on('callback_query', async (ctx) => {
                      url.includes('meta-llama') ? 'Meta Llama' :
                      url.includes('copilot') ? 'Copilot' :
                      `API ${i + 1}`;
-      message += `${i + 1}\\. ${apiName} \\- GiftedTech\\n`;
+      message += `${i + 1}\\. ${apiName} \\- GiftedTech\n`;
     }
     
     // Check Google Gemini status
-    message += `\\n🤖 **Fallback API:**\\n`;
+    message += `\n🤖 *Fallback API:*\n`;
     if (geminiAI) {
-      message += `✅ Google Gemini \\- *Configured & Ready*\\n`;
+      message += `✅ Google Gemini \\- *Configured & Ready*\n`;
     } else {
-      message += `⚠️ Google Gemini \\- *Not Configured*\\n`;
-      message += `💡 Set GOOGLE\\_API\\_KEY to enable fallback\\n`;
+      message += `⚠️ Google Gemini \\- *Not Configured*\n`;
+      message += `💡 Set GOOGLE\\_API\\_KEY to enable fallback\n`;
     }
     
-    message += `\\n📊 **API Flow:**\\n`;
-    message += `1\\. Try all ${aiAPIs.length} primary APIs sequentially\\n`;
-    message += `2\\. If all fail, use Google Gemini fallback\\n`;
-    message += `3\\. If still no response, show helpful error\\n\\n`;
+    message += `\n📊 *API Flow:*\n`;
+    message += `1\\. Try all ${aiAPIs.length} primary APIs sequentially\n`;
+    message += `2\\. If all fail, use Google Gemini fallback\n`;
+    message += `3\\. If still no response, show helpful error\n\n`;
     
-    message += `🛡️ **Brand Protection:**\\n`;
-    message += `• All responses maintain Cool Shot AI identity\\n`;
-    message += `• Comprehensive text replacement active\\n`;
-    message += `• No external provider names visible\\n\\n`;
+    message += `🛡️ *Brand Protection:*\n`;
+    message += `• All responses maintain Cool Shot AI identity\n`;
+    message += `• Comprehensive text replacement active\n`;
+    message += `• No external provider names visible\n\n`;
     
     message += `✨ _Cool Shot Systems API Management_`;
     
