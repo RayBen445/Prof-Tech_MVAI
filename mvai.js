@@ -920,6 +920,7 @@ bot.command('help', async (ctx) => {
       "• /tiktok <url> - TikTok videos\n\n" +
       "🎬 *Media Tools:*\n" +
       "• /ytmp3 <url> - YouTube to MP3\n" +
+      "• /song <query> - Search and download songs\n" +
       "• /pdf <text> - Create PDF document\n\n" +
       "🎨 *Image Tools:*\n" +
       "• /removebg - Remove background\n" +
@@ -2058,6 +2059,59 @@ bot.command('ytmp3', async (ctx) => {
     await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
     console.error('❌ YouTube MP3 error:', error.message);
     ctx.reply('❌ Failed to download MP3. Please check the URL and try again.');
+  }
+});
+
+// ========== Song Search and Download ==========
+async function searchSong(query) {
+  try {
+    const response = await axios.get('https://apis.davidcyriltech.my.id/song', {
+      params: { query },
+      timeout: 15000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Song search error:', error.message);
+    return null;
+  }
+}
+
+bot.command('song', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('song', ctx.from.id);
+  
+  const query = ctx.message.text.replace('/song ', '');
+  if (!query || query === '/song') {
+    return ctx.reply('Usage: /song <song name or artist>\nExample: /song Faded Alan Walker');
+  }
+  
+  const processingMsg = await ctx.reply('🔍 Searching for song...');
+  
+  try {
+    const result = await searchSong(query);
+    
+    if (result && result.download) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const title = result.title || 'Unknown';
+      const artist = result.artist || 'Unknown';
+      const duration = result.duration || 'Unknown';
+      
+      const message = `🎵 *Song Found*\n\n` +
+                     `*Title:* ${title}\n` +
+                     `*Artist:* ${artist}\n` +
+                     `*Duration:* ${duration}\n\n` +
+                     `📥 *Download:* ${result.download}\n\n` +
+                     `✨ _Powered by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Song not found');
+    }
+  } catch (error) {
+    await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+    console.error('❌ Song search error:', error.message);
+    ctx.reply('❌ Song not found. Please try a different search query.');
   }
 });
 
