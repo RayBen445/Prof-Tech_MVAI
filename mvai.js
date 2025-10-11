@@ -347,7 +347,33 @@ try {
   console.log('⚠️ Google Gemini API not available:', error.message);
 }
 
-// Google Gemini API fallback function
+// Web Search API function for real-time information
+async function performWebSearch(query) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/search/google', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        query: query
+      },
+      timeout: 8000
+    });
+    
+    if (data.success && data.results && data.results.length > 0) {
+      // Format top 5 results for the AI
+      const searchResults = data.results.slice(0, 5).map((result, index) => 
+        `${index + 1}. ${result.title}\n   ${result.description}\n   Source: ${result.link}`
+      ).join('\n\n');
+      
+      return searchResults;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Web Search Error:', error.message);
+    return null;
+  }
+}
+
+// Google Gemini API fallback function with web search capability
 async function callGeminiAPI(prompt, role, lang) {
   if (!geminiAI) {
     throw new Error('Google Gemini API not configured');
@@ -371,6 +397,20 @@ async function callGeminiAPI(prompt, role, lang) {
       hour12: true
     });
     
+    // Check if query might need real-time web search
+    const searchKeywords = ['current', 'latest', 'today', 'now', 'recent', 'news', 'happening', 'what is', 'who is', 'where is'];
+    const needsSearch = searchKeywords.some(keyword => prompt.toLowerCase().includes(keyword));
+    
+    let webSearchResults = '';
+    if (needsSearch) {
+      console.log('🔍 Performing web search for real-time information...');
+      const searchData = await performWebSearch(prompt);
+      if (searchData) {
+        webSearchResults = `\n\nREAL-TIME WEB SEARCH RESULTS:\n${searchData}\n`;
+        console.log('✅ Web search completed successfully');
+      }
+    }
+    
     // Create a comprehensive prompt that maintains Cool Shot AI identity
     const systemPrompt = `You are Cool Shot AI, an intelligent assistant developed by Cool Shot Systems. 
 You are currently operating in ${role} mode. Respond in a helpful, professional manner.
@@ -383,7 +423,7 @@ IMPORTANT CONTEXT - Current Real-Time Information:
 - Current Time: ${currentTime}
 - You have access to real-time context and can reference current events and dates
 - When discussing events, always consider the current date provided above
-- For questions about "today", "now", or recent events, use this timestamp as reference
+- For questions about "today", "now", or recent events, use this timestamp as reference${webSearchResults}
 
 User Query: ${prompt}`;
     
@@ -650,7 +690,7 @@ bot.command('help', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       "🆘 *Cool Shot AI Help*\n\n" +
-      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /search <query> for web search\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
     )
   );
 });
@@ -818,6 +858,52 @@ bot.command('apistatus', async (ctx) => {
   message += `✨ _Cool Shot Systems API Management_`;
   
   ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+});
+
+// Web Search Command - Search the web for real-time information
+bot.command('search', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('search', ctx.from.id);
+  
+  const query = ctx.message.text.replace('/search ', '').trim();
+  if (!query || query === '/search') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🔍 *Web Search*\n\n' +
+      'Usage: /search <your query>\n' +
+      'Example: /search Cool Shot Systems Instagram\n\n' +
+      '✨ Get real-time information from the web!'
+    ));
+  }
+  
+  await ctx.sendChatAction('typing');
+  
+  try {
+    console.log(`🔍 Web search requested: "${query}"`);
+    const searchResults = await performWebSearch(query);
+    
+    if (searchResults) {
+      let message = `🔍 *Web Search Results*\n\n`;
+      message += `📝 Query: "${query}"\n\n`;
+      message += searchResults;
+      message += `\n\n✨ _Powered by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ Web search results sent successfully');
+    } else {
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Search Failed*\n\n' +
+        'Unable to retrieve search results at this time.\n' +
+        'Please try again later.'
+      ));
+    }
+  } catch (error) {
+    console.error('❌ Search command error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '❌ *Error*\n\n' +
+      'An error occurred while searching.\n' +
+      'Please try again.'
+    ));
+  }
 });
 
 // Users List Command (RayBen only)
