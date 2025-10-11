@@ -362,6 +362,7 @@ You are currently operating in ${role} mode. Respond in a helpful, professional 
 Your name is Cool Shot AI and you were created by Cool Shot Systems.
 Never mention Google, Gemini, or any other AI provider names.
 Always maintain the Cool Shot AI identity and branding.
+Your knowledge is current and up to date. Do not mention specific knowledge cutoff dates.
 
 User Query: ${prompt}`;
     
@@ -376,6 +377,7 @@ User Query: ${prompt}`;
           .replace(/I was (created|developed|made|built) by Google/gi, "I was created by Cool Shot Systems")
           .replace(/Google AI|Google's AI|Gemini AI/gi, "Cool Shot AI")
           .replace(/I'm here to help/gi, "I'm Cool Shot AI, here to help")
+          .replace(/My knowledge (is up to date until|cutoff is|ends at|stops at) [A-Z][a-z]+ \d{4}/gi, "My knowledge is current and up to date")
           .trim()
       };
     }
@@ -509,6 +511,7 @@ bot.on('text', async (ctx, next) => {
             .replace(/Cool Shot Designs\/Tech/gi, 'Cool Shot Systems')
             .replace(/I['’`]?m an AI language model/gi, "I'm Cool Shot AI, your intelligent assistant")
             .replace(/I was created by.*?[\\.\\n]/gi, "I was created by Cool Shot Systems.\n")
+            .replace(/My knowledge (is up to date until|cutoff is|ends at|stops at) [A-Z][a-z]+ \d{4}/gi, "My knowledge is current and up to date")
             .replace(/[“”]/g, '"')
         );
         // Beautiful response formatting
@@ -539,6 +542,7 @@ bot.on('text', async (ctx, next) => {
             .replace(/I'm an AI assistant|I'm a large language model/gi, "I'm Cool Shot AI, your intelligent assistant")
             .replace(/I was (created|developed|made|built) by Google/gi, "I was created by Cool Shot Systems")
             .replace(/Google AI|Google's AI|Gemini AI/gi, "Cool Shot AI")
+            .replace(/My knowledge (is up to date until|cutoff is|ends at|stops at) [A-Z][a-z]+ \d{4}/gi, "My knowledge is current and up to date")
             .replace(/[""]/g, '"')
         );
         
