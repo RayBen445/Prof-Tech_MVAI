@@ -1097,8 +1097,8 @@ bot.command('analytics', async (ctx) => {
   const topCommands = Object.entries(analytics.commandStats)
     .sort(([,a], [,b]) => b - a)
     .slice(0, 5)
-    .map(([cmd, count], i) => `${i + 1}\\. /${escapeMarkdownV2(cmd)} \\(${count} uses\\)`)
-    .join('\\n');
+    .map(([cmd, count], i) => `${i + 1}. /${cmd} (${count} uses)`)
+    .join('\n');
   
   // Most active users
   const topUsers = Object.entries(analytics.userActivity)
@@ -1108,21 +1108,21 @@ bot.command('analytics', async (ctx) => {
       const user = users[userId];
       const name = user ? (user.firstName || 'Unknown') : 'Unknown';
       const total = activity.messages + activity.commands;
-      return `${i + 1}\\. ${escapeMarkdownV2(name)} \\(${total} interactions\\)`;
+      return `${i + 1}. ${name} (${total} interactions)`;
     })
-    .join('\\n');
+    .join('\n');
 
-  ctx.replyWithMarkdownV2(
-    `📊 *Bot Analytics Dashboard*\\n\\n` +
-    `⏰ **Uptime:** ${uptime} days\\n` +
-    `👥 **Total Users:** ${totalUsers}\\n` +
-    `🎯 **Active Today:** ${activeToday}\\n` +
-    `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-    `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-    `🏆 **Top Commands:**\\n${topCommands || 'No data'}\\n\\n` +
-    `👑 **Most Active Users:**\\n${topUsers || 'No data'}\\n\\n` +
-    `✨ _Analytics powered by Cool Shot Systems_`
-  );
+  const message = `📊 *Bot Analytics Dashboard*\n\n` +
+    `⏰ *Uptime:* ${uptime} days\n` +
+    `👥 *Total Users:* ${totalUsers}\n` +
+    `🎯 *Active Today:* ${activeToday}\n` +
+    `💬 *Total Messages:* ${analytics.totalMessages}\n` +
+    `⚡ *Total Commands:* ${analytics.totalCommands}\n\n` +
+    `🏆 *Top Commands:*\n${topCommands || 'No data'}\n\n` +
+    `👑 *Most Active Users:*\n${topUsers || 'No data'}\n\n` +
+    `✨ _Analytics powered by Cool Shot Systems_`;
+
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 // User Activity Command (Admin Only)
@@ -1149,21 +1149,21 @@ bot.command('activity', async (ctx) => {
     const messages = activity ? activity.messages : 0;
     const commands = activity ? activity.commands : 0;
     
-    ctx.replyWithMarkdownV2(
-      `👤 *User Activity Report*\\n\\n` +
-      `📛 **Name:** ${escapeMarkdownV2(user.firstName || 'Unknown')}\\n` +
-      `🆔 **ID:** \`${user.id}\`\\n` +
-      `👤 **Username:** ${user.username ? `@${escapeMarkdownV2(user.username)}` : 'No username'}\\n` +
-      `🛡️ **Admin:** ${user.isAdmin ? '✅ Yes' : '❌ No'}\\n\\n` +
-      `📊 **Activity Stats:**\\n` +
-      `💬 Messages: ${messages}\\n` +
-      `⚡ Commands: ${commands}\\n` +
-      `🎯 Total: ${totalActivity}\\n\\n` +
-      `📅 **Dates:**\\n` +
-      `🆕 First Seen: ${escapeMarkdownV2(new Date(user.firstSeen).toLocaleDateString())}\\n` +
-      `👁️ Last Seen: ${escapeMarkdownV2(new Date(user.lastSeen).toLocaleDateString())}\\n\\n` +
-      `📝 **Notes:** ${escapeMarkdownV2(user.notes || 'No notes')}`
-    );
+    const message = `👤 *User Activity Report*\n\n` +
+      `📛 *Name:* ${user.firstName || 'Unknown'}\n` +
+      `🆔 *ID:* \`${user.id}\`\n` +
+      `👤 *Username:* ${user.username ? `@${user.username}` : 'No username'}\n` +
+      `🛡️ *Admin:* ${user.isAdmin ? '✅ Yes' : '❌ No'}\n\n` +
+      `📊 *Activity Stats:*\n` +
+      `💬 Messages: ${messages}\n` +
+      `⚡ Commands: ${commands}\n` +
+      `🎯 Total: ${totalActivity}\n\n` +
+      `📅 *Dates:*\n` +
+      `🆕 First Seen: ${new Date(user.firstSeen).toLocaleDateString()}\n` +
+      `👁️ Last Seen: ${new Date(user.lastSeen).toLocaleDateString()}\n\n` +
+      `📝 *Notes:* ${user.notes || 'No notes'}`;
+    
+    ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
   } else {
     // Show general activity overview
     const recentUsers = Object.values(users)
@@ -1175,19 +1175,19 @@ bot.command('activity', async (ctx) => {
       .sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen))
       .slice(0, 10);
     
-    let message = `📈 *Recent User Activity*\\n\\n`;
-    message += `🎯 **Active in last 3 days:** ${recentUsers.length}\\n\\n`;
+    let message = `📈 *Recent User Activity*\n\n`;
+    message += `🎯 *Active in last 3 days:* ${recentUsers.length}\n\n`;
     
     recentUsers.forEach((user, i) => {
       const name = user.firstName || 'Unknown';
       const username = user.username ? `@${user.username}` : 'No username';
       const isAdminBadge = user.isAdmin ? ' 🛡️' : '';
-      message += `${i + 1}\\. ${escapeMarkdownV2(name)} \\(${escapeMarkdownV2(username)}\\)${isAdminBadge}\\n`;
+      message += `${i + 1}. ${name} (${username})${isAdminBadge}\n`;
     });
     
-    message += `\\n💡 Use \`/activity <user_id>\` for detailed user stats`;
+    message += `\n💡 Use \`/activity <user_id>\` for detailed user stats`;
     
-    ctx.replyWithMarkdownV2(message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
   }
 });
 
@@ -1439,11 +1439,11 @@ bot.command('coin', async (ctx) => {
   const result = Math.random() < 0.5 ? 'Heads' : 'Tails';
   const emoji = result === 'Heads' ? '🙂' : '🔄';
   
-  ctx.replyWithMarkdownV2(
-    `🪙 *Coin Flip*\\n\\n` +
-    `${emoji} **Result:** ${result}\\n\\n` +
-    `🎯 _Fate has decided\\!_`
-  );
+  const message = `🪙 *Coin Flip*\n\n` +
+    `${emoji} *Result:* ${result}\n\n` +
+    `🎯 _Fate has decided!_`;
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 bot.command('number', async (ctx) => {
@@ -1452,12 +1452,12 @@ bot.command('number', async (ctx) => {
   
   const number = Math.floor(Math.random() * 100) + 1;
   
-  ctx.replyWithMarkdownV2(
-    `🔢 *Random Number*\\n\\n` +
-    `🎯 **Your number:** ${number}\\n` +
-    `📊 **Range:** 1 \\- 100\\n\\n` +
-    `✨ _Generated by Cool Shot Systems_`
-  );
+  const message = `🔢 *Random Number*\n\n` +
+    `🎯 *Your number:* ${number}\n` +
+    `📊 *Range:* 1 - 100\n\n` +
+    `✨ _Generated by Cool Shot Systems_`;
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 bot.command('8ball', async (ctx) => {
@@ -1535,11 +1535,11 @@ bot.command('joke', async (ctx) => {
   
   const joke = jokes[Math.floor(Math.random() * jokes.length)];
   
-  ctx.replyWithMarkdownV2(
-    `😂 *Random Joke*\\n\\n` +
-    `🎭 ${escapeMarkdownV2(joke)}\\n\\n` +
-    `😄 _Hope that made you smile\\!_`
-  );
+  const message = `😂 *Random Joke*\n\n` +
+    `🎭 ${joke}\n\n` +
+    `😄 _Hope that made you smile!_`;
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 bot.command('fact', async (ctx) => {
@@ -1561,11 +1561,11 @@ bot.command('fact', async (ctx) => {
   
   const fact = facts[Math.floor(Math.random() * facts.length)];
   
-  ctx.replyWithMarkdownV2(
-    `🧠 *Fun Fact*\\n\\n` +
-    `💡 ${escapeMarkdownV2(fact)}\\n\\n` +
-    `🤓 _Learn something new every day\\!_`
-  );
+  const message = `🧠 *Fun Fact*\n\n` +
+    `💡 ${fact}\n\n` +
+    `🤓 _Learn something new every day!_`;
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 // Bot Stats Command (Enhanced)
@@ -1589,19 +1589,19 @@ bot.command('stats', async (ctx) => {
   const userLang = userLanguages[ctx.from.id] || 'en';
   const langLabel = languages.find(l => l.code === userLang)?.label || '🇬🇧 English';
   
-  ctx.replyWithMarkdownV2(
-    `📊 *Cool Shot AI Statistics*\\n\\n` +
-    `⏰ **Bot Uptime:** ${uptimeDays}d ${uptimeHours}h\\n` +
-    `👥 **Total Users:** ${totalUsers}\\n` +
-    `🛡️ **Administrators:** ${totalAdmins}\\n` +
-    `🎯 **Active Today:** ${activeToday}\\n` +
-    `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-    `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-    `👤 **Your Settings:**\\n` +
-    `🧠 Role: ${escapeMarkdownV2(userRole)}\\n` +
-    `🌐 Language: ${escapeMarkdownV2(langLabel)}\\n\\n` +
-    `✨ _Powered by Cool Shot Systems_`
-  );
+  const message = `📊 *Cool Shot AI Statistics*\n\n` +
+    `⏰ *Bot Uptime:* ${uptimeDays}d ${uptimeHours}h\n` +
+    `👥 *Total Users:* ${totalUsers}\n` +
+    `🛡️ *Administrators:* ${totalAdmins}\n` +
+    `🎯 *Active Today:* ${activeToday}\n` +
+    `💬 *Total Messages:* ${analytics.totalMessages}\n` +
+    `⚡ *Total Commands:* ${analytics.totalCommands}\n\n` +
+    `👤 *Your Settings:*\n` +
+    `🧠 Role: ${userRole}\n` +
+    `🌐 Language: ${langLabel}\n\n` +
+    `✨ _Powered by Cool Shot Systems_`;
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 // Command Usage Statistics (Admin Only)
