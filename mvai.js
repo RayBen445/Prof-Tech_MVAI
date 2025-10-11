@@ -911,12 +911,16 @@ bot.command('help', async (ctx) => {
       "• /lang - Choose language\n" +
       "• /search <query> - Web search\n" +
       "• /describe - AI image description\n" +
-      "• /imagine <prompt> - Generate images\n\n" +
+      "• /imagine <prompt> - Generate images\n" +
+      "• /chatgradient <text> - Alternative AI\n\n" +
       "📥 *Social Media Downloads:*\n" +
       "• /facebook <url> - Facebook videos\n" +
       "• /instagram <url> - Instagram posts/reels\n" +
       "• /twitter <url> - Twitter/X videos\n" +
       "• /tiktok <url> - TikTok videos\n\n" +
+      "🎬 *Media Tools:*\n" +
+      "• /ytmp3 <url> - YouTube to MP3\n" +
+      "• /pdf <text> - Create PDF document\n\n" +
       "🎨 *Image Tools:*\n" +
       "• /removebg - Remove background\n" +
       "• /web2zip <url> - Convert website to ZIP\n" +
@@ -1907,6 +1911,153 @@ bot.command('web2zip', async (ctx) => {
   } catch (error) {
     console.error('❌ Web2Zip error:', error.message);
     ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// ========== PDF Creation ==========
+async function createPDF(text) {
+  try {
+    const response = await axios.get('https://apis.davidcyriltech.my.id/pdf/create', {
+      params: { text },
+      timeout: 15000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ PDF creation error:', error.message);
+    return null;
+  }
+}
+
+bot.command('pdf', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('pdf', ctx.from.id);
+  
+  const text = ctx.message.text.replace('/pdf ', '');
+  if (!text || text === '/pdf') {
+    return ctx.reply('Usage: /pdf <text>\nExample: /pdf Hello World! This is my PDF document.');
+  }
+  
+  const processingMsg = await ctx.reply('⏳ Creating PDF...');
+  
+  try {
+    const result = await createPDF(text);
+    
+    if (result && result.url) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const message = `📄 *PDF Created Successfully!*\n\n` +
+                     `🔗 *Download Link:*\n${result.url}\n\n` +
+                     `✨ _Powered by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('PDF creation failed');
+    }
+  } catch (error) {
+    await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+    console.error('❌ PDF error:', error.message);
+    ctx.reply('❌ Failed to create PDF. Please try again later.');
+  }
+});
+
+// ========== ChatGradient AI ==========
+async function chatGradient(text) {
+  try {
+    const response = await axios.get('https://apis.davidcyriltech.my.id/ai/chatgradient', {
+      params: { text },
+      timeout: 15000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ ChatGradient error:', error.message);
+    return null;
+  }
+}
+
+bot.command('chatgradient', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('chatgradient', ctx.from.id);
+  
+  const text = ctx.message.text.replace('/chatgradient ', '');
+  if (!text || text === '/chatgradient') {
+    return ctx.reply('Usage: /chatgradient <your message>\nExample: /chatgradient What is AI?');
+  }
+  
+  const processingMsg = await ctx.reply('🤔 Thinking...');
+  
+  try {
+    const result = await chatGradient(text);
+    
+    if (result && result.result) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const time = new Date().toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      
+      const message = `🤖 *ChatGradient AI*\n` +
+                     `⏰ ${time}\n\n` +
+                     `${result.result}\n\n` +
+                     `✨ _Alternative AI Model_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('ChatGradient failed');
+    }
+  } catch (error) {
+    await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+    console.error('❌ ChatGradient error:', error.message);
+    ctx.reply('❌ Failed to get response. Please try again later.');
+  }
+});
+
+// ========== YouTube MP3 Downloader ==========
+async function downloadYouTubeMP3(url) {
+  try {
+    const response = await axios.get('https://apis.davidcyriltech.my.id/download/ytmp3', {
+      params: { url },
+      timeout: 60000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ YouTube MP3 download error:', error.message);
+    return null;
+  }
+}
+
+bot.command('ytmp3', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('ytmp3', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/ytmp3 ', '');
+  if (!url || url === '/ytmp3') {
+    return ctx.reply('Usage: /ytmp3 <youtube_url>\nExample: /ytmp3 https://www.youtube.com/watch?v=...');
+  }
+  
+  const processingMsg = await ctx.reply('⏳ Converting YouTube to MP3... This may take up to 60 seconds.');
+  
+  try {
+    const result = await downloadYouTubeMP3(url);
+    
+    if (result && result.download) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const title = result.title || 'Audio';
+      const message = `🎵 *YouTube to MP3*\n\n` +
+                     `📝 *Title:* ${title}\n\n` +
+                     `🔗 *Download Link:*\n${result.download}\n\n` +
+                     `✨ _Powered by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('YouTube MP3 download failed');
+    }
+  } catch (error) {
+    await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+    console.error('❌ YouTube MP3 error:', error.message);
+    ctx.reply('❌ Failed to download MP3. Please check the URL and try again.');
   }
 });
 
