@@ -416,6 +416,36 @@ async function generateImage(prompt) {
   }
 }
 
+// Social Media Download API functions
+async function downloadMedia(platform, url) {
+  const endpoints = {
+    facebook: 'https://api.giftedtech.co.ke/api/download/facebook',
+    instagram: 'https://api.giftedtech.co.ke/api/download/instadl',
+    twitter: 'https://api.giftedtech.co.ke/api/download/twitter',
+    tiktok: 'https://api.giftedtech.co.ke/api/download/tiktokdlv4',
+    xvideos: 'https://api.giftedtech.co.ke/api/download/xvideosdl',
+    xnxx: 'https://api.giftedtech.co.ke/api/download/xnxxdl'
+  };
+  
+  try {
+    const { data } = await axios.get(endpoints[platform], {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        url: url
+      },
+      timeout: 30000 // Downloads may take longer
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error(`❌ ${platform} Download API Error:`, error.message);
+    return null;
+  }
+}
+
 
 // Google Gemini API fallback function with web search capability
 async function callGeminiAPI(prompt, role, lang) {
@@ -734,7 +764,26 @@ bot.command('help', async (ctx) => {
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
       "🆘 *Cool Shot AI Help*\n\n" +
-      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /search <query> for web search\n• /describe for AI image description\n• /imagine <prompt> for AI image generation\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
+      "🤖 *AI Features:*\n" +
+      "• /start - Welcome message\n" +
+      "• /role - Pick your expert mode\n" +
+      "• /lang - Choose language\n" +
+      "• /search <query> - Web search\n" +
+      "• /describe - AI image description\n" +
+      "• /imagine <prompt> - Generate images\n\n" +
+      "📥 *Social Media Downloads:*\n" +
+      "• /facebook <url> - Facebook videos\n" +
+      "• /instagram <url> - Instagram posts/reels\n" +
+      "• /twitter <url> - Twitter/X videos\n" +
+      "• /tiktok <url> - TikTok videos\n\n" +
+      "🎮 *Entertainment:*\n" +
+      "• /games - Fun activities\n" +
+      "• /tools - Text utilities\n\n" +
+      "📊 *Info & Support:*\n" +
+      "• /stats - Bot statistics\n" +
+      "• /about - About the bot\n" +
+      "• /support <msg> - Get help\n" +
+      "• /ping - Check status"
     )
   );
 });
@@ -1097,6 +1146,278 @@ bot.command('imagine', async (ctx) => {
       'An error occurred while generating the image.\n' +
       'Please try again.'
     ));
+  }
+});
+
+// Social Media Downloader Commands
+// Facebook Download
+bot.command('facebook', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('facebook', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/facebook', '').trim();
+  
+  if (!url || url === '/facebook') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📥 *Facebook Downloader*\n\n' +
+      'Usage: /facebook <video_url>\n' +
+      'Example: /facebook https://www.facebook.com/reel/...\n\n' +
+      '✨ Download Facebook videos!'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`📥 Facebook download requested: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\nPlease wait while I fetch the video.'
+    ));
+    
+    const result = await downloadMedia('facebook', url);
+    
+    if (result && result.video_hd) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithVideo(result.video_hd, {
+        caption: `📥 Facebook Video\n\n✨ Downloaded by Cool Shot AI`
+      });
+      console.log('✅ Facebook video sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the video. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Facebook download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// Instagram Download
+bot.command('instagram', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('instagram', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/instagram', '').trim();
+  
+  if (!url || url === '/instagram') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📥 *Instagram Downloader*\n\n' +
+      'Usage: /instagram <post_url>\n' +
+      'Example: /instagram https://www.instagram.com/reel/...\n\n' +
+      '✨ Download Instagram posts and reels!'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`📥 Instagram download requested: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\nPlease wait while I fetch the content.'
+    ));
+    
+    const result = await downloadMedia('instagram', url);
+    
+    if (result) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      if (Array.isArray(result)) {
+        // Multiple media items
+        for (const item of result.slice(0, 5)) { // Limit to 5 items
+          if (item.type === 'video' || item.url.includes('.mp4')) {
+            await ctx.replyWithVideo(item.url, { caption: '✨ Cool Shot AI' });
+          } else {
+            await ctx.replyWithPhoto(item.url, { caption: '✨ Cool Shot AI' });
+          }
+        }
+      } else if (result.video_url) {
+        await ctx.replyWithVideo(result.video_url, {
+          caption: `📥 Instagram Video\n\n✨ Downloaded by Cool Shot AI`
+        });
+      } else if (result.image_url) {
+        await ctx.replyWithPhoto(result.image_url, {
+          caption: `📥 Instagram Photo\n\n✨ Downloaded by Cool Shot AI`
+        });
+      }
+      console.log('✅ Instagram content sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the content. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Instagram download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// Twitter Download
+bot.command('twitter', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('twitter', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/twitter', '').trim();
+  
+  if (!url || url === '/twitter') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📥 *Twitter/X Downloader*\n\n' +
+      'Usage: /twitter <tweet_url>\n' +
+      'Example: /twitter https://twitter.com/username/status/...\n\n' +
+      '✨ Download Twitter/X videos!'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`📥 Twitter download requested: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\nPlease wait while I fetch the video.'
+    ));
+    
+    const result = await downloadMedia('twitter', url);
+    
+    if (result && result.video_hd) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithVideo(result.video_hd, {
+        caption: `📥 Twitter Video\n\n✨ Downloaded by Cool Shot AI`
+      });
+      console.log('✅ Twitter video sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the video. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Twitter download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// TikTok Download
+bot.command('tiktok', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('tiktok', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/tiktok', '').trim();
+  
+  if (!url || url === '/tiktok') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📥 *TikTok Downloader*\n\n' +
+      'Usage: /tiktok <video_url>\n' +
+      'Example: /tiktok https://vm.tiktok.com/...\n\n' +
+      '✨ Download TikTok videos!'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`📥 TikTok download requested: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\nPlease wait while I fetch the video.'
+    ));
+    
+    const result = await downloadMedia('tiktok', url);
+    
+    if (result && result.videoUrl) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithVideo(result.videoUrl, {
+        caption: `📥 TikTok Video\n\n✨ Downloaded by Cool Shot AI`
+      });
+      console.log('✅ TikTok video sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the video. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ TikTok download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// Adult Content Download (Age Restricted)
+bot.command('adult', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('adult', ctx.from.id);
+  
+  // Age verification - check if user is admin or has appropriate permissions
+  // Note: Telegram doesn't provide user age, so we use admin verification as a safety measure
+  if (!isAdmin(ctx.from.id)) {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🔞 *Age Restricted Content*\n\n' +
+      '⛔️ This command is restricted to verified users only.\n\n' +
+      'For safety reasons, adult content downloads require admin verification.\n' +
+      'Contact the bot administrator if you need access.'
+    ));
+  }
+  
+  const args = ctx.message.text.replace('/adult', '').trim().split(' ');
+  const platform = args[0];
+  const url = args.slice(1).join(' ');
+  
+  if (!platform || !url) {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🔞 *Adult Content Downloader*\n\n' +
+      '⚠️ WARNING: This command is for adult content only.\n\n' +
+      'Usage: /adult <platform> <url>\n' +
+      'Platforms: xvideos, xnxx\n\n' +
+      'Example:\n' +
+      '/adult xvideos https://...\n\n' +
+      '🔒 Age restricted - Admin verification required'
+    ));
+  }
+  
+  if (!['xvideos', 'xnxx'].includes(platform.toLowerCase())) {
+    return ctx.reply('❌ Invalid platform. Use: xvideos or xnxx');
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`🔞 Adult content download requested by admin: ${platform}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\n🔞 Fetching adult content...'
+    ));
+    
+    const result = await downloadMedia(platform.toLowerCase(), url);
+    
+    if (result && result.video_url) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithVideo(result.video_url, {
+        caption: `🔞 Adult Content\n\n✨ Downloaded by Cool Shot AI\n⚠️ Age Restricted`
+      });
+      console.log('✅ Adult content sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the content. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Adult content download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
   }
 });
 
