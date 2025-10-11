@@ -515,7 +515,7 @@ bot.on('text', async (ctx, next) => {
         const roleLabel = roles.includes(role) ? role : 'Brain Master';
         const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
         
-        response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\n` +
+        response = `🤖 *${escapeMarkdownV2(`Cool Shot AI | ${roleLabel}`)}*\n` +
                   `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\n\n` +
                   `${cleaned}\n\n` +
                   `✨ _Powered by Cool Shot Systems_`;
@@ -546,7 +546,7 @@ bot.on('text', async (ctx, next) => {
         const roleLabel = roles.includes(role) ? role : 'Brain Master';
         const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
         
-        response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\n` +
+        response = `🤖 *${escapeMarkdownV2(`Cool Shot AI | ${roleLabel}`)}*\n` +
                   `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\n\n` +
                   `${cleaned}\n\n` +
                   `✨ _Powered by Cool Shot Systems_`;
@@ -562,7 +562,7 @@ bot.on('text', async (ctx, next) => {
     const roleLabel = roles.includes(role) ? role : 'Brain Master';
     const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
     
-    response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\n` +
+    response = `🤖 *${escapeMarkdownV2(`Cool Shot AI | ${roleLabel}`)}*\n` +
               `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\n\n` +
               `⚠️ I'm currently experiencing technical difficulties with my AI processing\\. Please try again in a moment\\!\n\n` +
               `💡 In the meantime, you can:\n` +
