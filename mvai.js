@@ -507,6 +507,47 @@ async function getTempMailMessage(email, messageId) {
   }
 }
 
+// Image Tools API functions
+async function removeBackground(imageUrl) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/tools/removebg', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        url: imageUrl
+      },
+      timeout: 30000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Remove BG Error:', error.message);
+    return null;
+  }
+}
+
+async function convertWebToZip(webUrl) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/tools/web2zip', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        url: webUrl
+      },
+      timeout: 60000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Web2Zip Error:', error.message);
+    return null;
+  }
+}
+
 
 // Google Gemini API fallback function with web search capability
 async function callGeminiAPI(prompt, role, lang) {
@@ -837,6 +878,9 @@ bot.command('help', async (ctx) => {
       "• /instagram <url> - Instagram posts/reels\n" +
       "• /twitter <url> - Twitter/X videos\n" +
       "• /tiktok <url> - TikTok videos\n\n" +
+      "🎨 *Image Tools:*\n" +
+      "• /removebg - Remove background\n" +
+      "• /web2zip <url> - Convert website to ZIP\n\n" +
       "📧 *Temporary Email:*\n" +
       "• /tempmail - TempMail instructions\n" +
       "• /tempmail_generate - Create temp email\n" +
@@ -1678,6 +1722,150 @@ bot.command('tempmail_read', async (ctx) => {
     }
   } catch (error) {
     console.error('❌ TempMail read error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// Image Tools Commands
+bot.command('removebg', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('removebg', ctx.from.id);
+  
+  // Check if user sent a photo with the command
+  if (ctx.message.photo) {
+    const photo = ctx.message.photo[ctx.message.photo.length - 1];
+    const fileLink = await ctx.telegram.getFileLink(photo.file_id);
+    const imageUrl = fileLink.href;
+    
+    await ctx.sendChatAction('upload_photo');
+    
+    try {
+      console.log('🎨 Removing background from uploaded image');
+      const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '⏳ *Processing...*\n\n🎨 Removing background from your image...'
+      ));
+      
+      const result = await removeBackground(imageUrl);
+      
+      if (result && result.image_url) {
+        await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+        await ctx.replyWithPhoto(result.image_url, {
+          caption: `🎨 Background Removed\n\n📏 Size: ${result.size || 'N/A'}\n\n✨ Powered by Cool Shot AI`
+        });
+        console.log('✅ Background removed successfully');
+      } else {
+        await ctx.telegram.editMessageText(
+          ctx.chat.id,
+          processingMsg.message_id,
+          null,
+          escapeMarkdownV2('❌ *Processing Failed*\n\nUnable to remove background. Please try again.'),
+          { parse_mode: 'MarkdownV2' }
+        );
+      }
+    } catch (error) {
+      console.error('❌ Remove BG error:', error.message);
+      ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+    }
+    return;
+  }
+  
+  // Check for URL in command
+  const url = ctx.message.text.replace('/removebg', '').trim();
+  
+  if (!url || url === '/removebg') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🎨 *Background Remover*\n\n' +
+      '*Usage:*\n' +
+      '• Send a photo with /removebg in caption\n' +
+      '• Or use: /removebg <image_url>\n\n' +
+      '*Example:*\n' +
+      '/removebg https://example.com/image.jpg\n\n' +
+      '✨ AI-powered background removal'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_photo');
+  
+  try {
+    console.log(`🎨 Removing background from URL: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Processing...*\n\n🎨 Removing background from image...'
+    ));
+    
+    const result = await removeBackground(url);
+    
+    if (result && result.image_url) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithPhoto(result.image_url, {
+        caption: `🎨 Background Removed\n\n📏 Size: ${result.size || 'N/A'}\n\n✨ Powered by Cool Shot AI`
+      });
+      console.log('✅ Background removed successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Processing Failed*\n\nUnable to remove background. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Remove BG error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+bot.command('web2zip', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('web2zip', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/web2zip', '').trim();
+  
+  if (!url || url === '/web2zip') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📦 *Website to ZIP Converter*\n\n' +
+      'Usage: /web2zip <website_url>\n\n' +
+      '*Examples:*\n' +
+      '/web2zip https://www.example.com\n' +
+      '/web2zip https://www.google.com\n\n' +
+      '✨ Download entire websites as ZIP files'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_document');
+  
+  try {
+    console.log(`📦 Converting website to ZIP: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Processing...*\n\n📦 Converting website to ZIP file...\n\n' +
+      '⚠️ This may take 30-60 seconds for larger sites.'
+    ));
+    
+    const result = await convertWebToZip(url);
+    
+    if (result && result.download_url) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const message = `📦 *Website ZIP Created*\n\n` +
+        `*Site:* ${result.siteUrl || url}\n` +
+        `*Files:* ${result.copiedFilesAmount || 'N/A'} files\n` +
+        `*Type:* ${result.mimetype || 'application/zip'}\n\n` +
+        `*Download:* [Click here](${result.download_url})\n\n` +
+        `✨ _Powered by Cool Shot AI_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ Website converted to ZIP successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Conversion Failed*\n\nUnable to convert website. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Web2Zip error:', error.message);
     ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
   }
 });
