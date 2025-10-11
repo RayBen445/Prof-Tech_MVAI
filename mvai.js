@@ -2646,18 +2646,16 @@ bot.command('tools', async (ctx) => {
   await trackCommand('tools', ctx.from.id);
   
   ctx.replyWithMarkdownV2(
-    escapeMarkdownV2(
-      '🛠️ *Text Utilities Toolkit*\n\n' +
-      '📝 **Available Tools:**\n' +
-      '• `/count <text>` - Count words and characters\n' +
-      '• `/reverse <text>` - Reverse text\n' +
-      '• `/upper <text>` - Convert to UPPERCASE\n' +
-      '• `/lower <text>` - Convert to lowercase\n' +
-      '• `/title <text>` - Convert To Title Case\n' +
-      '• `/encode <text>` - Base64 encode text\n' +
-      '• `/decode <text>` - Base64 decode text\n\n' +
-      '💡 *Example:* `/count Hello World` will show character and word count'
-    )
+    '🛠️ *Text Utilities Toolkit*\\n\\n' +
+    '📝 *Available Tools:*\\n' +
+    '• `/count <text>` \\- Count words and characters\\n' +
+    '• `/reverse <text>` \\- Reverse text\\n' +
+    '• `/upper <text>` \\- Convert to UPPERCASE\\n' +
+    '• `/lower <text>` \\- Convert to lowercase\\n' +
+    '• `/title <text>` \\- Convert To Title Case\\n' +
+    '• `/encode <text>` \\- Base64 encode text\\n' +
+    '• `/decode <text>` \\- Base64 decode text\\n\\n' +
+    '💡 *Example:* `/count Hello World` will show character and word count'
   );
 });
 
@@ -3223,7 +3221,7 @@ bot.on('callback_query', async (ctx) => {
   else if (data === 'show_tools') {
     await ctx.editMessageText(
       '🛠️ *Text Utilities Toolkit*\\n\\n' +
-      '📝 **Available Tools:**\\n' +
+      '📝 *Available Tools:*\\n' +
       '• `/count <text>` \\- Count words and characters\\n' +
       '• `/reverse <text>` \\- Reverse text\\n' +
       '• `/upper <text>` \\- Convert to UPPERCASE\\n' +
