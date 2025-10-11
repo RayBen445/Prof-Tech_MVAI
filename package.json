@@ -23,6 +23,7 @@
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "form-data": "^4.0.0",
     "fs-extra": "^11.3.0",
     "telegraf": "^4.12.2",
     "yt-search": "^2.13.1"

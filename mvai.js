@@ -528,6 +528,45 @@ async function removeBackground(imageUrl) {
   }
 }
 
+// Upload file to hosting service
+async function uploadFileToHost(fileUrl, fileName) {
+  try {
+    // Download the file from Telegram
+    const fileResponse = await axios.get(fileUrl, {
+      responseType: 'arraybuffer',
+      timeout: 30000
+    });
+    
+    const FormData = require('form-data');
+    const formData = new FormData();
+    
+    // Create a buffer from the file data
+    const fileBuffer = Buffer.from(fileResponse.data);
+    formData.append('file', fileBuffer, { filename: fileName });
+    
+    // Upload to GiftedTech file hosting
+    const { data } = await axios.post('https://api.giftedtech.co.ke/upload/', formData, {
+      headers: {
+        ...formData.getHeaders(),
+      },
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted'
+      },
+      timeout: 60000,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity
+    });
+    
+    if (data.success && data.url) {
+      return data.url;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ File Upload Error:', error.message);
+    return null;
+  }
+}
+
 async function convertWebToZip(webUrl) {
   try {
     const { data } = await axios.get('https://api.giftedtech.co.ke/api/tools/web2zip', {
@@ -880,7 +919,8 @@ bot.command('help', async (ctx) => {
       "• /tiktok <url> - TikTok videos\n\n" +
       "🎨 *Image Tools:*\n" +
       "• /removebg - Remove background\n" +
-      "• /web2zip <url> - Convert website to ZIP\n\n" +
+      "• /web2zip <url> - Convert website to ZIP\n" +
+      "• /upload - Upload file for permanent URL\n\n" +
       "📧 *Temporary Email:*\n" +
       "• /tempmail - TempMail instructions\n" +
       "• /tempmail_generate - Create temp email\n" +
@@ -1867,6 +1907,71 @@ bot.command('web2zip', async (ctx) => {
   } catch (error) {
     console.error('❌ Web2Zip error:', error.message);
     ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// File Upload Command
+bot.command('upload', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('upload', ctx.from.id);
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(
+    '📤 *File Upload Service*\n\n' +
+    'Upload any file to get a permanent URL!\n\n' +
+    '*How to use:*\n' +
+    '1. Send any file to the bot\n' +
+    '2. Wait for processing\n' +
+    '3. Get your permanent download URL\n\n' +
+    '*Supported:* Documents, images, videos, audio, and more\n\n' +
+    '💡 *Tip:* Just send the file directly - no command needed!'
+  ));
+});
+
+// Handle file uploads (documents, photos, videos, audio)
+bot.on('document', async (ctx) => {
+  await updateUserInfo(ctx);
+  
+  try {
+    const file = ctx.message.document;
+    console.log(`📤 Uploading file: ${file.file_name} (${file.file_size} bytes)`);
+    
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Uploading...*\n\n' +
+      `📄 File: ${file.file_name}\n` +
+      `📦 Size: ${(file.file_size / 1024 / 1024).toFixed(2)} MB\n\n` +
+      'Please wait while we upload your file...'
+    ));
+    
+    // Get file URL from Telegram
+    const fileLink = await ctx.telegram.getFileLink(file.file_id);
+    
+    // Upload to GiftedTech file hosting
+    const uploadedUrl = await uploadFileToHost(fileLink.href, file.file_name);
+    
+    if (uploadedUrl) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const message = `✅ *File Uploaded Successfully!*\n\n` +
+        `📄 *File:* ${file.file_name}\n` +
+        `📦 *Size:* ${(file.file_size / 1024 / 1024).toFixed(2)} MB\n` +
+        `🔗 *URL:* ${uploadedUrl}\n\n` +
+        `💡 *Share this link* to access your file anytime!\n\n` +
+        `✨ _Powered by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ File uploaded successfully:', uploadedUrl);
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Upload Failed*\n\nUnable to upload file. Please try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ File upload error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nFailed to upload file. Please try again.'));
   }
 });
 
