@@ -356,13 +356,34 @@ async function callGeminiAPI(prompt, role, lang) {
   try {
     const model = geminiAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
+    // Get current date and time for context
+    const now = new Date();
+    const currentDate = now.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    const currentTime = now.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+    
     // Create a comprehensive prompt that maintains Cool Shot AI identity
     const systemPrompt = `You are Cool Shot AI, an intelligent assistant developed by Cool Shot Systems. 
 You are currently operating in ${role} mode. Respond in a helpful, professional manner.
 Your name is Cool Shot AI and you were created by Cool Shot Systems.
 Never mention Google, Gemini, or any other AI provider names.
 Always maintain the Cool Shot AI identity and branding.
-Your knowledge is current and up to date. Do not mention specific knowledge cutoff dates.
+
+IMPORTANT CONTEXT - Current Real-Time Information:
+- Current Date: ${currentDate}
+- Current Time: ${currentTime}
+- You have access to real-time context and can reference current events and dates
+- When discussing events, always consider the current date provided above
+- For questions about "today", "now", or recent events, use this timestamp as reference
 
 User Query: ${prompt}`;
     
@@ -489,6 +510,21 @@ bot.on('text', async (ctx, next) => {
   const role = userRoles[userId] || 'Brain Master';
   const lang = userLanguages[userId] || 'en';
   const time = new Date().toLocaleTimeString('en-NG', { timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit' });
+  
+  // Get current date and time for real-time context
+  const now = new Date();
+  const currentDate = now.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  const currentTime = now.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
 
   await ctx.sendChatAction('typing');
   let response = escapeMarkdownV2("🤖 Sorry, I couldn't generate a reply.");
@@ -498,7 +534,7 @@ bot.on('text', async (ctx, next) => {
       const { data } = await axios.get(url, {
         params: {
           apikey: process.env.AI_API_KEY || 'gifted',
-          q: `${role}: ${ctx.message.text}`,
+          q: `[Current Date: ${currentDate}, Time: ${currentTime}] ${role}: ${ctx.message.text}`,
           lang
         },
         timeout: 8000
