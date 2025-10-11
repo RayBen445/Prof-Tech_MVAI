@@ -2829,7 +2829,13 @@ bot.command('games', async (ctx) => {
       '• `/8ball <question>` - Magic 8-ball\n' +
       '• `/quote` - Get an inspirational quote\n' +
       '• `/joke` - Random joke\n' +
-      '• `/fact` - Random fun fact\n\n' +
+      '• `/fact` - Random fun fact\n' +
+      '• `/advice` - Get wise advice\n' +
+      '• `/pickupline` - Funny pickup line\n' +
+      '• `/flirt` - Flirty message\n' +
+      '• `/valentine` - Valentine message\n' +
+      '• `/love` - Love message\n' +
+      '• `/thankyou` - Thank you message\n\n' +
       '🎯 *Example:* `/8ball Will I be successful?`'
     )
   );
@@ -2912,53 +2918,82 @@ bot.command('quote', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('quote', ctx.from.id);
   
-  const quotes = [
-    { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
-    { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
-    { text: "Life is what happens to you while you're busy making other plans.", author: "John Lennon" },
-    { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
-    { text: "It is during our darkest moments that we must focus to see the light.", author: "Aristotle" },
-    { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
-    { text: "The only impossible journey is the one you never begin.", author: "Tony Robbins" },
-    { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
-    { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
-    { text: "Quality is not an act, it is a habit.", author: "Aristotle" }
-  ];
-  
-  const quote = quotes[Math.floor(Math.random() * quotes.length)];
-  
-  ctx.replyWithMarkdownV2(
-    `💎 *Inspirational Quote*\n\n` +
-    `"${escapeMarkdownV2(quote.text)}"\n\n` +
-    `👤 *— ${escapeMarkdownV2(quote.author)}*\n\n` +
-    `✨ _Inspiration by Cool Shot Systems_`
-  );
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/quotes', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && data.result) {
+      const quote = data.result.quote || data.result;
+      const author = data.result.author || 'Unknown';
+      
+      ctx.replyWithMarkdownV2(
+        `💎 *Inspirational Quote*\n\n` +
+        `"${escapeMarkdownV2(quote)}"\n\n` +
+        `👤 *— ${escapeMarkdownV2(author)}*\n\n` +
+        `✨ _Inspiration by Cool Shot Systems_`
+      );
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Quote API error:', error.message);
+    // Fallback to hardcoded quotes
+    const quotes = [
+      { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+      { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
+      { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" }
+    ];
+    const quote = quotes[Math.floor(Math.random() * quotes.length)];
+    ctx.replyWithMarkdownV2(
+      `💎 *Inspirational Quote*\n\n` +
+      `"${escapeMarkdownV2(quote.text)}"\n\n` +
+      `👤 *— ${escapeMarkdownV2(quote.author)}*\n\n` +
+      `✨ _Inspiration by Cool Shot Systems_`
+    );
+  }
 });
 
 bot.command('joke', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('joke', ctx.from.id);
   
-  const jokes = [
-    "Why don't scientists trust atoms? Because they make up everything!",
-    "Why did the programmer quit his job? Because he didn't get arrays!",
-    "How do you organize a space party? You planet!",
-    "Why don't eggs tell jokes? They'd crack each other up!",
-    "What do you call a fake noodle? An impasta!",
-    "Why did the math book look so sad? Because it had too many problems!",
-    "What's the best thing about Switzerland? I don't know, but the flag is a big plus!",
-    "Why do programmers prefer dark mode? Because light attracts bugs!",
-    "How does a penguin build its house? Igloos it together!",
-    "Why don't robots ever panic? They have nerves of steel!"
-  ];
-  
-  const joke = jokes[Math.floor(Math.random() * jokes.length)];
-  
-  const message = `😂 *Random Joke*\n\n` +
-    `🎭 ${joke}\n\n` +
-    `😄 _Hope that made you smile!_`;
-  
-  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+  try {
+    // Randomly select between the two joke API endpoints
+    const apiEndpoints = [
+      'https://api.giftedtech.co.ke/api/fun/jokes',
+      'https://api.giftedtech.co.ke/api/fun/jokes'
+    ];
+    const selectedApi = apiEndpoints[Math.floor(Math.random() * apiEndpoints.length)];
+    
+    const { data } = await axios.get(selectedApi, {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.joke)) {
+      const joke = data.result || data.joke;
+      const message = `😂 *Random Joke*\n\n` +
+        `🎭 ${joke}\n\n` +
+        `😄 _Hope that made you smile!_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Joke API error:', error.message);
+    // Fallback to hardcoded jokes
+    const jokes = [
+      "Why don't scientists trust atoms? Because they make up everything!",
+      "Why did the programmer quit his job? Because he didn't get arrays!",
+      "How do you organize a space party? You planet!"
+    ];
+    const joke = jokes[Math.floor(Math.random() * jokes.length)];
+    const message = `😂 *Random Joke*\n\n` +
+      `🎭 ${joke}\n\n` +
+      `😄 _Hope that made you smile!_`;
+    ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+  }
 });
 
 bot.command('fact', async (ctx) => {
@@ -2985,6 +3020,162 @@ bot.command('fact', async (ctx) => {
     `🤓 _Learn something new every day!_`;
   
   ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+});
+
+// Advice Command - NEW
+bot.command('advice', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('advice', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/advice', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.advice)) {
+      const advice = data.result || data.advice;
+      const message = `💡 *Wise Advice*\n\n` +
+        `🌟 ${advice}\n\n` +
+        `🎯 _Guidance by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Advice API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch advice at the moment. Please try again later.');
+  }
+});
+
+// Pickup Line Command - NEW
+bot.command('pickupline', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('pickupline', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/pickupline', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.pickupline)) {
+      const line = data.result || data.pickupline;
+      const message = `😏 *Pickup Line*\n\n` +
+        `💘 ${line}\n\n` +
+        `😉 _Use at your own risk!_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Pickup Line API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch pickup line at the moment. Please try again later.');
+  }
+});
+
+// Flirt Command - NEW
+bot.command('flirt', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('flirt', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/flirt', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.flirt)) {
+      const flirt = data.result || data.flirt;
+      const message = `💕 *Flirty Message*\n\n` +
+        `💝 ${flirt}\n\n` +
+        `😘 _Sweet talk by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Flirt API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch flirt message at the moment. Please try again later.');
+  }
+});
+
+// Valentine Command - NEW
+bot.command('valentine', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('valentine', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/valentines', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.valentine)) {
+      const valentine = data.result || data.valentine;
+      const message = `💖 *Valentine Message*\n\n` +
+        `💐 ${valentine}\n\n` +
+        `💗 _Love from Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Valentine API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch valentine message at the moment. Please try again later.');
+  }
+});
+
+// Love Command - NEW
+bot.command('love', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('love', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/love', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.love)) {
+      const love = data.result || data.love;
+      const message = `❤️ *Love Message*\n\n` +
+        `💞 ${love}\n\n` +
+        `💕 _Romance by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Love API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch love message at the moment. Please try again later.');
+  }
+});
+
+// Thank You Command - NEW
+bot.command('thankyou', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('thankyou', ctx.from.id);
+  
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/fun/thankyou', {
+      params: { apikey: process.env.AI_API_KEY || 'gifted' }
+    });
+    
+    if (data && (data.result || data.thankyou)) {
+      const thanks = data.result || data.thankyou;
+      const message = `🙏 *Thank You Message*\n\n` +
+        `💝 ${thanks}\n\n` +
+        `✨ _Gratitude by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Invalid API response');
+    }
+  } catch (error) {
+    console.error('Thank You API error:', error.message);
+    ctx.reply('⚠️ Unable to fetch thank you message at the moment. Please try again later.');
+  }
 });
 
 // Bot Stats Command (Enhanced)
@@ -3212,7 +3403,13 @@ bot.on('callback_query', async (ctx) => {
       '• `/8ball <question>` \\- Magic 8\\-ball\n' +
       '• `/quote` \\- Get an inspirational quote\n' +
       '• `/joke` \\- Random joke\n' +
-      '• `/fact` \\- Random fun fact\n\n' +
+      '• `/fact` \\- Random fun fact\n' +
+      '• `/advice` \\- Get wise advice\n' +
+      '• `/pickupline` \\- Funny pickup line\n' +
+      '• `/flirt` \\- Flirty message\n' +
+      '• `/valentine` \\- Valentine message\n' +
+      '• `/love` \\- Love message\n' +
+      '• `/thankyou` \\- Thank you message\n\n' +
       '🎯 *Example:* `/8ball Will I be successful?`',
       { parse_mode: 'MarkdownV2' }
     );
