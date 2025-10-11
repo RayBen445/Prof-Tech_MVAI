@@ -347,7 +347,248 @@ try {
   console.log('⚠️ Google Gemini API not available:', error.message);
 }
 
-// Google Gemini API fallback function
+// Web Search API function for real-time information
+async function performWebSearch(query) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/search/google', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        query: query
+      },
+      timeout: 8000
+    });
+    
+    if (data.success && data.results && data.results.length > 0) {
+      // Format top 5 results for the AI
+      const searchResults = data.results.slice(0, 5).map((result, index) => 
+        `${index + 1}. ${result.title}\n   ${result.description}\n   Source: ${result.link}`
+      ).join('\n\n');
+      
+      return searchResults;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Web Search Error:', error.message);
+    return null;
+  }
+}
+
+// Vision API function for image description
+async function describeImage(imageUrl, prompt = "Describe in detail what is in the picture") {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/ai/vision', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        url: imageUrl,
+        prompt: prompt
+      },
+      timeout: 15000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Vision API Error:', error.message);
+    return null;
+  }
+}
+
+// Image Generation API function
+async function generateImage(prompt) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/ai/fluximg', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        prompt: prompt
+      },
+      timeout: 60000 // Image generation takes longer
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Image Generation API Error:', error.message);
+    return null;
+  }
+}
+
+// Social Media Download API functions
+async function downloadMedia(platform, url) {
+  const endpoints = {
+    facebook: 'https://api.giftedtech.co.ke/api/download/facebook',
+    instagram: 'https://api.giftedtech.co.ke/api/download/instadl',
+    twitter: 'https://api.giftedtech.co.ke/api/download/twitter',
+    tiktok: 'https://api.giftedtech.co.ke/api/download/tiktokdlv4',
+    xvideos: 'https://api.giftedtech.co.ke/api/download/xvideosdl',
+    xnxx: 'https://api.giftedtech.co.ke/api/download/xnxxdl'
+  };
+  
+  try {
+    const { data } = await axios.get(endpoints[platform], {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        url: url
+      },
+      timeout: 30000 // Downloads may take longer
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error(`❌ ${platform} Download API Error:`, error.message);
+    return null;
+  }
+}
+
+// Temporary Email API functions
+async function generateTempEmail() {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/tempmail/generate', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted'
+      },
+      timeout: 10000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ TempMail Generate Error:', error.message);
+    return null;
+  }
+}
+
+async function getTempMailInbox(email) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/tempmail/inbox', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        email: email
+      },
+      timeout: 10000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ TempMail Inbox Error:', error.message);
+    return null;
+  }
+}
+
+async function getTempMailMessage(email, messageId) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/tempmail/message', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        email: email,
+        messageid: messageId
+      },
+      timeout: 10000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ TempMail Message Error:', error.message);
+    return null;
+  }
+}
+
+// Image Tools API functions
+async function removeBackground(imageUrl) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/tools/removebg', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        url: imageUrl
+      },
+      timeout: 30000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Remove BG Error:', error.message);
+    return null;
+  }
+}
+
+// Upload file to hosting service
+async function uploadFileToHost(fileUrl, fileName) {
+  try {
+    // Download the file from Telegram
+    const fileResponse = await axios.get(fileUrl, {
+      responseType: 'arraybuffer',
+      timeout: 30000
+    });
+    
+    const FormData = require('form-data');
+    const formData = new FormData();
+    
+    // Create a buffer from the file data
+    const fileBuffer = Buffer.from(fileResponse.data);
+    formData.append('file', fileBuffer, { filename: fileName });
+    
+    // Upload to GiftedTech file hosting
+    const { data } = await axios.post('https://api.giftedtech.co.ke/upload/', formData, {
+      headers: {
+        ...formData.getHeaders(),
+      },
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted'
+      },
+      timeout: 60000,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity
+    });
+    
+    if (data.success && data.url) {
+      return data.url;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ File Upload Error:', error.message);
+    return null;
+  }
+}
+
+async function convertWebToZip(webUrl) {
+  try {
+    const { data } = await axios.get('https://api.giftedtech.co.ke/api/tools/web2zip', {
+      params: {
+        apikey: process.env.AI_API_KEY || 'gifted',
+        url: webUrl
+      },
+      timeout: 60000
+    });
+    
+    if (data.success && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Web2Zip Error:', error.message);
+    return null;
+  }
+}
+
+
+// Google Gemini API fallback function with web search capability
 async function callGeminiAPI(prompt, role, lang) {
   if (!geminiAI) {
     throw new Error('Google Gemini API not configured');
@@ -356,12 +597,50 @@ async function callGeminiAPI(prompt, role, lang) {
   try {
     const model = geminiAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
+    // Get current date and time for context
+    const now = new Date();
+    const currentDate = now.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    const currentTime = now.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+    
+    // Check if query might need real-time web search
+    const searchKeywords = ['current', 'latest', 'today', 'now', 'recent', 'news', 'happening', 'what is', 'who is', 'where is'];
+    const needsSearch = searchKeywords.some(keyword => prompt.toLowerCase().includes(keyword));
+    
+    let webSearchResults = '';
+    if (needsSearch) {
+      console.log('🔍 Performing web search for real-time information...');
+      const searchData = await performWebSearch(prompt);
+      if (searchData) {
+        webSearchResults = `\n\nREAL-TIME WEB SEARCH RESULTS:\n${searchData}\n`;
+        console.log('✅ Web search completed successfully');
+      }
+    }
+    
     // Create a comprehensive prompt that maintains Cool Shot AI identity
     const systemPrompt = `You are Cool Shot AI, an intelligent assistant developed by Cool Shot Systems. 
 You are currently operating in ${role} mode. Respond in a helpful, professional manner.
 Your name is Cool Shot AI and you were created by Cool Shot Systems.
 Never mention Google, Gemini, or any other AI provider names.
 Always maintain the Cool Shot AI identity and branding.
+
+LANGUAGE INSTRUCTION: Respond in ${lang} language. All your responses must be in ${lang}.
+
+IMPORTANT CONTEXT - Current Real-Time Information:
+- Current Date: ${currentDate}
+- Current Time: ${currentTime}
+- You have access to real-time context and can reference current events and dates
+- When discussing events, always consider the current date provided above
+- For questions about "today", "now", or recent events, use this timestamp as reference${webSearchResults}
 
 User Query: ${prompt}`;
     
@@ -376,6 +655,7 @@ User Query: ${prompt}`;
           .replace(/I was (created|developed|made|built) by Google/gi, "I was created by Cool Shot Systems")
           .replace(/Google AI|Google's AI|Gemini AI/gi, "Cool Shot AI")
           .replace(/I'm here to help/gi, "I'm Cool Shot AI, here to help")
+          .replace(/My knowledge (is up to date until|cutoff is|ends at|stops at) [A-Z][a-z]+ \d{4}/gi, "My knowledge is current and up to date")
           .trim()
       };
     }
@@ -487,6 +767,21 @@ bot.on('text', async (ctx, next) => {
   const role = userRoles[userId] || 'Brain Master';
   const lang = userLanguages[userId] || 'en';
   const time = new Date().toLocaleTimeString('en-NG', { timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit' });
+  
+  // Get current date and time for real-time context
+  const now = new Date();
+  const currentDate = now.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  const currentTime = now.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
 
   await ctx.sendChatAction('typing');
   let response = escapeMarkdownV2("🤖 Sorry, I couldn't generate a reply.");
@@ -496,7 +791,7 @@ bot.on('text', async (ctx, next) => {
       const { data } = await axios.get(url, {
         params: {
           apikey: process.env.AI_API_KEY || 'gifted',
-          q: `${role}: ${ctx.message.text}`,
+          q: `[Current Date: ${currentDate}, Time: ${currentTime}] ${role}: ${ctx.message.text}`,
           lang
         },
         timeout: 8000
@@ -509,13 +804,14 @@ bot.on('text', async (ctx, next) => {
             .replace(/Cool Shot Designs\/Tech/gi, 'Cool Shot Systems')
             .replace(/I['’`]?m an AI language model/gi, "I'm Cool Shot AI, your intelligent assistant")
             .replace(/I was created by.*?[\\.\\n]/gi, "I was created by Cool Shot Systems.\n")
+            .replace(/My knowledge (is up to date until|cutoff is|ends at|stops at) [A-Z][a-z]+ \d{4}/gi, "My knowledge is current and up to date")
             .replace(/[“”]/g, '"')
         );
         // Beautiful response formatting
         const roleLabel = roles.includes(role) ? role : 'Brain Master';
         const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
         
-        response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\n` +
+        response = `🤖 *${escapeMarkdownV2(`Cool Shot AI | ${roleLabel}`)}*\n` +
                   `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\n\n` +
                   `${cleaned}\n\n` +
                   `✨ _Powered by Cool Shot Systems_`;
@@ -539,6 +835,7 @@ bot.on('text', async (ctx, next) => {
             .replace(/I'm an AI assistant|I'm a large language model/gi, "I'm Cool Shot AI, your intelligent assistant")
             .replace(/I was (created|developed|made|built) by Google/gi, "I was created by Cool Shot Systems")
             .replace(/Google AI|Google's AI|Gemini AI/gi, "Cool Shot AI")
+            .replace(/My knowledge (is up to date until|cutoff is|ends at|stops at) [A-Z][a-z]+ \d{4}/gi, "My knowledge is current and up to date")
             .replace(/[""]/g, '"')
         );
         
@@ -546,7 +843,7 @@ bot.on('text', async (ctx, next) => {
         const roleLabel = roles.includes(role) ? role : 'Brain Master';
         const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
         
-        response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\n` +
+        response = `🤖 *${escapeMarkdownV2(`Cool Shot AI | ${roleLabel}`)}*\n` +
                   `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\n\n` +
                   `${cleaned}\n\n` +
                   `✨ _Powered by Cool Shot Systems_`;
@@ -562,7 +859,7 @@ bot.on('text', async (ctx, next) => {
     const roleLabel = roles.includes(role) ? role : 'Brain Master';
     const langLabel = languages.find(l => l.code === lang)?.label || '🇬🇧 English';
     
-    response = `🤖 *Cool Shot AI* \\| *${escapeMarkdownV2(roleLabel)}*\n` +
+    response = `🤖 *${escapeMarkdownV2(`Cool Shot AI | ${roleLabel}`)}*\n` +
               `🌐 ${escapeMarkdownV2(langLabel)} \\| ⏰ ${time}\n\n` +
               `⚠️ I'm currently experiencing technical difficulties with my AI processing\\. Please try again in a moment\\!\n\n` +
               `💡 In the meantime, you can:\n` +
@@ -603,15 +900,192 @@ bot.command('about', async (ctx) => {
   );
 });
 
-// Help Command
+// Help Command - Main Menu
 bot.command('help', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('help', ctx.from.id);
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
-      "🆘 *Cool Shot AI Help*\n\n" +
-      "• Use /start to see welcome\n• /role to pick your expert mode\n• /lang for language\n• /about for info\n• /reset for a fresh start\n• /buttons for quick menu\n• /games for fun activities\n• /tools for text utilities\n• /stats for bot statistics\n• /support <your message> if you need help\n• /ping to check bot status"
-    )
+      "🆘 *Cool Shot AI Help Menu*\n\n" +
+      "Select a category to view available commands:"
+    ),
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🤖 AI Features", callback_data: "help_ai" }],
+          [{ text: "📥 Social Media Downloads", callback_data: "help_social" }],
+          [{ text: "🎬 Media Tools", callback_data: "help_media" }],
+          [{ text: "🎨 Image Tools", callback_data: "help_image" }],
+          [{ text: "📧 Temporary Email", callback_data: "help_tempmail" }],
+          [{ text: "🎮 Entertainment", callback_data: "help_entertainment" }],
+          [{ text: "📊 Info & Support", callback_data: "help_info" }]
+        ]
+      }
+    }
+  );
+});
+
+// Help Menu Callback Handlers
+bot.action('help_ai', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "🤖 *AI Features*\n\n" +
+      "• /start - Welcome message\n" +
+      "• /role - Pick your expert mode\n" +
+      "• /lang - Choose language\n" +
+      "• /search <query> - Web search\n" +
+      "• /describe - AI image description\n" +
+      "• /imagine <prompt> - Generate images\n" +
+      "• /chatgradient <text> - Alternative AI"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_social', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "📥 *Social Media Downloads*\n\n" +
+      "• /facebook <url> - Facebook videos\n" +
+      "• /instagram <url> - Instagram posts/reels\n" +
+      "• /twitter <url> - Twitter/X videos\n" +
+      "• /tiktok <url> - TikTok videos\n" +
+      "• /xvideos <url> - XVideos downloader\n" +
+      "• /xnxx <url> - XNXX downloader\n" +
+      "• /adult - Adult content instructions"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_media', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "🎬 *Media Tools*\n\n" +
+      "• /ytmp3 <url> - YouTube to MP3\n" +
+      "• /song <query> - Search and download songs\n" +
+      "• /pdf <text> - Create PDF document"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_image', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "🎨 *Image Tools*\n\n" +
+      "• /removebg - Remove background\n" +
+      "• /web2zip <url> - Convert website to ZIP\n" +
+      "• /upload - Upload file for permanent URL"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_tempmail', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "📧 *Temporary Email*\n\n" +
+      "• /tempmail - TempMail instructions\n" +
+      "• /tempmail_generate - Create temp email\n" +
+      "• /tempmail_inbox <email> - Check inbox\n" +
+      "• /tempmail_read <email> <id> - Read message"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_entertainment', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "🎮 *Entertainment*\n\n" +
+      "• /games - Fun activities\n" +
+      "• /tools - Text utilities\n" +
+      "• /joke - Random jokes\n" +
+      "• /fact - Fun facts\n" +
+      "• /coin - Flip a coin\n" +
+      "• /number - Random number"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_info', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "📊 *Info & Support*\n\n" +
+      "• /stats - Bot statistics\n" +
+      "• /about - About the bot\n" +
+      "• /support <msg> - Get help\n" +
+      "• /ping - Check status"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_main', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "🆘 *Cool Shot AI Help Menu*\n\n" +
+      "Select a category to view available commands:"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🤖 AI Features", callback_data: "help_ai" }],
+          [{ text: "📥 Social Media Downloads", callback_data: "help_social" }],
+          [{ text: "🎬 Media Tools", callback_data: "help_media" }],
+          [{ text: "🎨 Image Tools", callback_data: "help_image" }],
+          [{ text: "📧 Temporary Email", callback_data: "help_tempmail" }],
+          [{ text: "🎮 Entertainment", callback_data: "help_entertainment" }],
+          [{ text: "📊 Info & Support", callback_data: "help_info" }]
+        ]
+      }
+    }
   );
 });
 
@@ -742,10 +1216,10 @@ bot.command('apistatus', async (ctx) => {
     return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can check API status.'));
   }
   
-  let message = `🔧 *AI API Status Dashboard*\\n\\n`;
+  let message = `🔧 *AI API Status Dashboard*\n\n`;
   
   // Check primary APIs
-  message += `🎯 **Primary APIs \\(${aiAPIs.length}\\):**\\n`;
+  message += `🎯 *Primary APIs (${aiAPIs.length}):*\n`;
   for (let i = 0; i < aiAPIs.length; i++) {
     const url = aiAPIs[i];
     const apiName = url.includes('gpt4o') ? 'GPT-4o' : 
@@ -753,31 +1227,1104 @@ bot.command('apistatus', async (ctx) => {
                    url.includes('meta-llama') ? 'Meta Llama' :
                    url.includes('copilot') ? 'Copilot' :
                    `API ${i + 1}`;
-    message += `${i + 1}\\. ${escapeMarkdownV2(apiName)} \\- GiftedTech\\n`;
+    message += `${i + 1}. ${apiName} - GiftedTech\n`;
   }
   
   // Check Google Gemini status
-  message += `\\n🤖 **Fallback API:**\\n`;
+  message += `\n🤖 *Fallback API:*\n`;
   if (geminiAI) {
-    message += `✅ Google Gemini \\- *Configured & Ready*\\n`;
+    message += `✅ Google Gemini - *Configured & Ready*\n`;
   } else {
-    message += `⚠️ Google Gemini \\- *Not Configured*\\n`;
-    message += `💡 Set GOOGLE\\_API\\_KEY environment variable to enable\\n`;
+    message += `⚠️ Google Gemini - *Not Configured*\n`;
+    message += `💡 Set GOOGLE_API_KEY environment variable to enable\n`;
   }
   
-  message += `\\n📊 **API Flow:**\\n`;
-  message += `1\\. Try all ${aiAPIs.length} primary APIs sequentially\\n`;
-  message += `2\\. If all fail, use Google Gemini fallback\\n`;
-  message += `3\\. If still no response, show enhanced error message\\n\\n`;
+  message += `\n📊 *API Flow:*\n`;
+  message += `1. Try all ${aiAPIs.length} primary APIs sequentially\n`;
+  message += `2. If all fail, use Google Gemini fallback\n`;
+  message += `3. If still no response, show enhanced error message\n\n`;
   
-  message += `🛡️ **Brand Protection:**\\n`;
-  message += `• All responses maintain Cool Shot AI identity\\n`;
-  message += `• Comprehensive text replacement ensures consistency\\n`;
-  message += `• No external provider names leak through\\n\\n`;
+  message += `🛡️ *Brand Protection:*\n`;
+  message += `• All responses maintain Cool Shot AI identity\n`;
+  message += `• Comprehensive text replacement ensures consistency\n`;
+  message += `• No external provider names leak through\n\n`;
   
   message += `✨ _Cool Shot Systems API Management_`;
   
-  ctx.replyWithMarkdownV2(message);
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+});
+
+// Web Search Command - Search the web for real-time information
+bot.command('search', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('search', ctx.from.id);
+  
+  const query = ctx.message.text.replace('/search ', '').trim();
+  if (!query || query === '/search') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🔍 *Web Search*\n\n' +
+      'Usage: /search <your query>\n' +
+      'Example: /search Cool Shot Systems Instagram\n\n' +
+      '✨ Get real-time information from the web!'
+    ));
+  }
+  
+  await ctx.sendChatAction('typing');
+  
+  try {
+    console.log(`🔍 Web search requested: "${query}"`);
+    const searchResults = await performWebSearch(query);
+    
+    if (searchResults) {
+      let message = `🔍 *Web Search Results*\n\n`;
+      message += `📝 Query: "${query}"\n\n`;
+      message += searchResults;
+      message += `\n\n✨ _Powered by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ Web search results sent successfully');
+    } else {
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Search Failed*\n\n' +
+        'Unable to retrieve search results at this time.\n' +
+        'Please try again later.'
+      ));
+    }
+  } catch (error) {
+    console.error('❌ Search command error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '❌ *Error*\n\n' +
+      'An error occurred while searching.\n' +
+      'Please try again.'
+    ));
+  }
+});
+
+// Describe Image Command - AI Vision
+bot.command('describe', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('describe', ctx.from.id);
+  
+  const args = ctx.message.text.replace('/describe', '').trim();
+  
+  // Check if there's a photo in the message
+  if (ctx.message.photo && ctx.message.photo.length > 0) {
+    // Get the highest quality photo
+    const photo = ctx.message.photo[ctx.message.photo.length - 1];
+    const fileLink = await ctx.telegram.getFileLink(photo.file_id);
+    const imageUrl = fileLink.href;
+    const customPrompt = args || "Describe in detail what is in the picture, including objects, atmosphere and mood of the picture";
+    
+    await ctx.sendChatAction('typing');
+    
+    try {
+      console.log(`👁️ Vision API requested for image: ${imageUrl}`);
+      const description = await describeImage(imageUrl, customPrompt);
+      
+      if (description) {
+        const message = `👁️ *Image Description*\n\n${description}\n\n✨ _Powered by Cool Shot AI Vision_`;
+        ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+        console.log('✅ Image description sent successfully');
+      } else {
+        ctx.replyWithMarkdownV2(escapeMarkdownV2(
+          '❌ *Description Failed*\n\n' +
+          'Unable to analyze the image at this time.\n' +
+          'Please try again later.'
+        ));
+      }
+    } catch (error) {
+      console.error('❌ Describe command error:', error.message);
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Error*\n\n' +
+        'An error occurred while analyzing the image.\n' +
+        'Please try again.'
+      ));
+    }
+  } else if (args.startsWith('http')) {
+    // URL provided
+    const parts = args.split(' ');
+    const imageUrl = parts[0];
+    const customPrompt = parts.slice(1).join(' ') || "Describe in detail what is in the picture, including objects, atmosphere and mood of the picture";
+    
+    await ctx.sendChatAction('typing');
+    
+    try {
+      console.log(`👁️ Vision API requested for URL: ${imageUrl}`);
+      const description = await describeImage(imageUrl, customPrompt);
+      
+      if (description) {
+        const message = `👁️ *Image Description*\n\n${description}\n\n✨ _Powered by Cool Shot AI Vision_`;
+        ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+        console.log('✅ Image description sent successfully');
+      } else {
+        ctx.replyWithMarkdownV2(escapeMarkdownV2(
+          '❌ *Description Failed*\n\n' +
+          'Unable to analyze the image at this time.\n' +
+          'Please try again later.'
+        ));
+      }
+    } catch (error) {
+      console.error('❌ Describe command error:', error.message);
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Error*\n\n' +
+        'An error occurred while analyzing the image.\n' +
+        'Please try again.'
+      ));
+    }
+  } else {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '👁️ *AI Vision - Image Description*\n\n' +
+      'Usage:\n' +
+      '• Send a photo with caption: /describe [optional custom prompt]\n' +
+      '• Or: /describe <image_url> [optional custom prompt]\n\n' +
+      'Examples:\n' +
+      '• Send photo with: /describe\n' +
+      '• Send photo with: /describe What objects are in this image?\n' +
+      '• /describe https://example.com/image.jpg\n' +
+      '• /describe https://example.com/image.jpg Describe the colors\n\n' +
+      '✨ Get AI-powered image descriptions!'
+    ));
+  }
+});
+
+// Imagine Command - AI Image Generation
+bot.command('imagine', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('imagine', ctx.from.id);
+  
+  const prompt = ctx.message.text.replace('/imagine', '').trim();
+  
+  if (!prompt || prompt === '/imagine') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🎨 *AI Image Generation*\n\n' +
+      'Usage: /imagine <your prompt>\n' +
+      'Example: /imagine Logo for car\n' +
+      'Example: /imagine Beautiful sunset over mountains\n\n' +
+      '✨ Create images with AI!'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_photo');
+  
+  try {
+    console.log(`🎨 Image generation requested: "${prompt}"`);
+    
+    // Send a "processing" message
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🎨 *Generating Image...*\n\n' +
+      `Prompt: "${prompt}"\n\n` +
+      '⏳ This may take 30-60 seconds. Please wait...'
+    ));
+    
+    const imageUrl = await generateImage(prompt);
+    
+    if (imageUrl) {
+      // Delete the processing message
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      // Send the generated image
+      await ctx.replyWithPhoto(imageUrl, {
+        caption: `🎨 Generated Image\n\nPrompt: "${prompt}"\n\n✨ Powered by Cool Shot AI`
+      });
+      console.log('✅ Generated image sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2(
+          '❌ *Generation Failed*\n\n' +
+          'Unable to generate the image at this time.\n' +
+          'Please try again later.'
+        ),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Imagine command error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '❌ *Error*\n\n' +
+      'An error occurred while generating the image.\n' +
+      'Please try again.'
+    ));
+  }
+});
+
+// Social Media Downloader Commands
+// Facebook Download
+bot.command('facebook', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('facebook', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/facebook', '').trim();
+  
+  if (!url || url === '/facebook') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📥 *Facebook Downloader*\n\n' +
+      'Usage: /facebook <video_url>\n' +
+      'Example: /facebook https://www.facebook.com/reel/...\n\n' +
+      '✨ Download Facebook videos!'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`📥 Facebook download requested: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\nPlease wait while I fetch the video.'
+    ));
+    
+    const result = await downloadMedia('facebook', url);
+    
+    if (result && result.video_hd) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithVideo(result.video_hd, {
+        caption: `📥 Facebook Video\n\n✨ Downloaded by Cool Shot AI`
+      });
+      console.log('✅ Facebook video sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the video. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Facebook download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// Instagram Download
+bot.command('instagram', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('instagram', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/instagram', '').trim();
+  
+  if (!url || url === '/instagram') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📥 *Instagram Downloader*\n\n' +
+      'Usage: /instagram <post_url>\n' +
+      'Example: /instagram https://www.instagram.com/reel/...\n\n' +
+      '✨ Download Instagram posts and reels!'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`📥 Instagram download requested: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\nPlease wait while I fetch the content.'
+    ));
+    
+    const result = await downloadMedia('instagram', url);
+    
+    if (result) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      if (Array.isArray(result)) {
+        // Multiple media items
+        for (const item of result.slice(0, 5)) { // Limit to 5 items
+          if (item.type === 'video' || item.url.includes('.mp4')) {
+            await ctx.replyWithVideo(item.url, { caption: '✨ Cool Shot AI' });
+          } else {
+            await ctx.replyWithPhoto(item.url, { caption: '✨ Cool Shot AI' });
+          }
+        }
+      } else if (result.video_url) {
+        await ctx.replyWithVideo(result.video_url, {
+          caption: `📥 Instagram Video\n\n✨ Downloaded by Cool Shot AI`
+        });
+      } else if (result.image_url) {
+        await ctx.replyWithPhoto(result.image_url, {
+          caption: `📥 Instagram Photo\n\n✨ Downloaded by Cool Shot AI`
+        });
+      }
+      console.log('✅ Instagram content sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the content. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Instagram download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// Twitter Download
+bot.command('twitter', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('twitter', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/twitter', '').trim();
+  
+  if (!url || url === '/twitter') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📥 *Twitter/X Downloader*\n\n' +
+      'Usage: /twitter <tweet_url>\n' +
+      'Example: /twitter https://twitter.com/username/status/...\n\n' +
+      '✨ Download Twitter/X videos!'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`📥 Twitter download requested: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\nPlease wait while I fetch the video.'
+    ));
+    
+    const result = await downloadMedia('twitter', url);
+    
+    if (result && result.video_hd) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithVideo(result.video_hd, {
+        caption: `📥 Twitter Video\n\n✨ Downloaded by Cool Shot AI`
+      });
+      console.log('✅ Twitter video sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the video. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Twitter download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// TikTok Download
+bot.command('tiktok', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('tiktok', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/tiktok', '').trim();
+  
+  if (!url || url === '/tiktok') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📥 *TikTok Downloader*\n\n' +
+      'Usage: /tiktok <video_url>\n' +
+      'Example: /tiktok https://vm.tiktok.com/...\n\n' +
+      '✨ Download TikTok videos!'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`📥 TikTok download requested: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\nPlease wait while I fetch the video.'
+    ));
+    
+    const result = await downloadMedia('tiktok', url);
+    
+    if (result && result.videoUrl) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithVideo(result.videoUrl, {
+        caption: `📥 TikTok Video\n\n✨ Downloaded by Cool Shot AI`
+      });
+      console.log('✅ TikTok video sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the video. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ TikTok download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// Adult Content Download (Age Restricted)
+bot.command('adult', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('adult', ctx.from.id);
+  
+  // Provide instructions instead of downloading
+  return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+    '🔞 *Adult Content Download Instructions*\n\n' +
+    '⚠️ WARNING: Adult content commands are available.\n\n' +
+    '*Available Commands:*\n' +
+    '• /xvideos <url> - Download from XVideos\n' +
+    '• /xnxx <url> - Download from XNXX\n\n' +
+    '*Examples:*\n' +
+    '/xvideos https://www.xvideos.com/...\n' +
+    '/xnxx https://www.xnxx.com/...\n\n' +
+    '⚠️ Use responsibly and ensure you comply with local laws.'
+  ));
+});
+
+// XVideos Download (No age restriction)
+bot.command('xvideos', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('xvideos', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/xvideos', '').trim();
+  
+  if (!url || url === '/xvideos') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🔞 *XVideos Downloader*\n\n' +
+      'Usage: /xvideos <video_url>\n' +
+      'Example: /xvideos https://www.xvideos.com/...\n\n' +
+      '⚠️ Adult content - Use responsibly'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`🔞 XVideos download requested`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\n🔞 Fetching adult content...'
+    ));
+    
+    const result = await downloadMedia('xvideos', url);
+    
+    if (result && result.video_url) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithVideo(result.video_url, {
+        caption: `🔞 XVideos Content\n\n✨ Downloaded by Cool Shot AI\n⚠️ Adult Content`
+      });
+      console.log('✅ XVideos content sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the content. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ XVideos download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// XNXX Download (No age restriction)
+bot.command('xnxx', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('xnxx', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/xnxx', '').trim();
+  
+  if (!url || url === '/xnxx') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🔞 *XNXX Downloader*\n\n' +
+      'Usage: /xnxx <video_url>\n' +
+      'Example: /xnxx https://www.xnxx.com/...\n\n' +
+      '⚠️ Adult content - Use responsibly'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_video');
+  
+  try {
+    console.log(`🔞 XNXX download requested`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Downloading...*\n\n🔞 Fetching adult content...'
+    ));
+    
+    const result = await downloadMedia('xnxx', url);
+    
+    if (result && result.video_url) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithVideo(result.video_url, {
+        caption: `🔞 XNXX Content\n\n✨ Downloaded by Cool Shot AI\n⚠️ Adult Content`
+      });
+      console.log('✅ XNXX content sent successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Download Failed*\n\nUnable to download the content. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ XNXX download error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// Temporary Email Commands
+bot.command('tempmail', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('tempmail', ctx.from.id);
+  
+  return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+    '📧 *Temporary Email Service*\n\n' +
+    '*Available Commands:*\n' +
+    '• /tempmail_generate - Create a new temp email\n' +
+    '• /tempmail_inbox <email> - Check inbox\n' +
+    '• /tempmail_read <email> <message_id> - Read message\n\n' +
+    '✨ Get temporary emails for testing and privacy!'
+  ));
+});
+
+bot.command('tempmail_generate', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('tempmail_generate', ctx.from.id);
+  
+  await ctx.sendChatAction('typing');
+  
+  try {
+    console.log('📧 Generating temporary email');
+    const result = await generateTempEmail();
+    
+    if (result && result.email) {
+      const message = `📧 *Temporary Email Generated*\n\n` +
+        `*Email:* \`${result.email}\`\n\n` +
+        `⏰ *Expires:* ${result.message || '10 minutes'}\n\n` +
+        `*Next Steps:*\n` +
+        `• Use this email for registrations\n` +
+        `• Check inbox with: /tempmail_inbox ${result.email}\n\n` +
+        `✨ _Powered by Cool Shot AI_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ Temp email generated successfully');
+    } else {
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Generation Failed*\n\n' +
+        'Unable to generate temporary email.\n' +
+        'Please try again later.'
+      ));
+    }
+  } catch (error) {
+    console.error('❌ TempMail generate error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+bot.command('tempmail_inbox', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('tempmail_inbox', ctx.from.id);
+  
+  const email = ctx.message.text.replace('/tempmail_inbox', '').trim();
+  
+  if (!email || email === '/tempmail_inbox') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📧 *Check Temp Email Inbox*\n\n' +
+      'Usage: /tempmail_inbox <email>\n' +
+      'Example: /tempmail_inbox whale48121@aminating.com\n\n' +
+      '💡 Generate an email first with /tempmail_generate'
+    ));
+  }
+  
+  await ctx.sendChatAction('typing');
+  
+  try {
+    console.log(`📧 Checking inbox for: ${email}`);
+    const result = await getTempMailInbox(email);
+    
+    if (result && Array.isArray(result) && result.length > 0) {
+      let message = `📧 *Inbox for ${email}*\n\n`;
+      message += `*Messages (${result.length}):*\n\n`;
+      
+      result.slice(0, 10).forEach((msg, index) => {
+        message += `${index + 1}. *From:* ${msg.from || 'Unknown'}\n`;
+        message += `   *Subject:* ${msg.subject || 'No Subject'}\n`;
+        message += `   *ID:* \`${msg.id || msg.messageId}\`\n`;
+        message += `   *Date:* ${msg.date || 'Unknown'}\n\n`;
+      });
+      
+      message += `💡 Read a message: /tempmail_read ${email} <message_id>`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ Inbox retrieved successfully');
+    } else if (result && Array.isArray(result) && result.length === 0) {
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        `📧 *Inbox for ${email}*\n\n` +
+        '📭 No messages yet.\n\n' +
+        'Send a test email to this address and check again.'
+      ));
+    } else {
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Inbox Check Failed*\n\n' +
+        'Unable to retrieve inbox.\n' +
+        'Make sure the email is valid and not expired.'
+      ));
+    }
+  } catch (error) {
+    console.error('❌ TempMail inbox error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+bot.command('tempmail_read', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('tempmail_read', ctx.from.id);
+  
+  const args = ctx.message.text.replace('/tempmail_read', '').trim().split(' ');
+  const email = args[0];
+  const messageId = args.slice(1).join(' ');
+  
+  if (!email || !messageId) {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📧 *Read Temp Email Message*\n\n' +
+      'Usage: /tempmail_read <email> <message_id>\n' +
+      'Example: /tempmail_read whale@aminating.com 12345\n\n' +
+      '💡 Get message ID from /tempmail_inbox'
+    ));
+  }
+  
+  await ctx.sendChatAction('typing');
+  
+  try {
+    console.log(`📧 Reading message ${messageId} for: ${email}`);
+    const result = await getTempMailMessage(email, messageId);
+    
+    if (result) {
+      let message = `📧 *Email Message*\n\n`;
+      message += `*From:* ${result.from || 'Unknown'}\n`;
+      message += `*Subject:* ${result.subject || 'No Subject'}\n`;
+      message += `*Date:* ${result.date || 'Unknown'}\n\n`;
+      message += `*Message:*\n${result.body || result.text || 'No content'}\n\n`;
+      message += `✨ _Cool Shot AI TempMail_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ Message read successfully');
+    } else {
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '❌ *Message Read Failed*\n\n' +
+        'Unable to retrieve the message.\n' +
+        'Please check the email and message ID.'
+      ));
+    }
+  } catch (error) {
+    console.error('❌ TempMail read error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// Image Tools Commands
+bot.command('removebg', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('removebg', ctx.from.id);
+  
+  // Check if user sent a photo with the command
+  if (ctx.message.photo) {
+    const photo = ctx.message.photo[ctx.message.photo.length - 1];
+    const fileLink = await ctx.telegram.getFileLink(photo.file_id);
+    const imageUrl = fileLink.href;
+    
+    await ctx.sendChatAction('upload_photo');
+    
+    try {
+      console.log('🎨 Removing background from uploaded image');
+      const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+        '⏳ *Processing...*\n\n🎨 Removing background from your image...'
+      ));
+      
+      const result = await removeBackground(imageUrl);
+      
+      if (result && result.image_url) {
+        await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+        await ctx.replyWithPhoto(result.image_url, {
+          caption: `🎨 Background Removed\n\n📏 Size: ${result.size || 'N/A'}\n\n✨ Powered by Cool Shot AI`
+        });
+        console.log('✅ Background removed successfully');
+      } else {
+        await ctx.telegram.editMessageText(
+          ctx.chat.id,
+          processingMsg.message_id,
+          null,
+          escapeMarkdownV2('❌ *Processing Failed*\n\nUnable to remove background. Please try again.'),
+          { parse_mode: 'MarkdownV2' }
+        );
+      }
+    } catch (error) {
+      console.error('❌ Remove BG error:', error.message);
+      ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+    }
+    return;
+  }
+  
+  // Check for URL in command
+  const url = ctx.message.text.replace('/removebg', '').trim();
+  
+  if (!url || url === '/removebg') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '🎨 *Background Remover*\n\n' +
+      '*Usage:*\n' +
+      '• Send a photo with /removebg in caption\n' +
+      '• Or use: /removebg <image_url>\n\n' +
+      '*Example:*\n' +
+      '/removebg https://example.com/image.jpg\n\n' +
+      '✨ AI-powered background removal'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_photo');
+  
+  try {
+    console.log(`🎨 Removing background from URL: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Processing...*\n\n🎨 Removing background from image...'
+    ));
+    
+    const result = await removeBackground(url);
+    
+    if (result && result.image_url) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      await ctx.replyWithPhoto(result.image_url, {
+        caption: `🎨 Background Removed\n\n📏 Size: ${result.size || 'N/A'}\n\n✨ Powered by Cool Shot AI`
+      });
+      console.log('✅ Background removed successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Processing Failed*\n\nUnable to remove background. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Remove BG error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+bot.command('web2zip', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('web2zip', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/web2zip', '').trim();
+  
+  if (!url || url === '/web2zip') {
+    return ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '📦 *Website to ZIP Converter*\n\n' +
+      'Usage: /web2zip <website_url>\n\n' +
+      '*Examples:*\n' +
+      '/web2zip https://www.example.com\n' +
+      '/web2zip https://www.google.com\n\n' +
+      '✨ Download entire websites as ZIP files'
+    ));
+  }
+  
+  await ctx.sendChatAction('upload_document');
+  
+  try {
+    console.log(`📦 Converting website to ZIP: ${url}`);
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Processing...*\n\n📦 Converting website to ZIP file...\n\n' +
+      '⚠️ This may take 30-60 seconds for larger sites.'
+    ));
+    
+    const result = await convertWebToZip(url);
+    
+    if (result && result.download_url) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const message = `📦 *Website ZIP Created*\n\n` +
+        `*Site:* ${result.siteUrl || url}\n` +
+        `*Files:* ${result.copiedFilesAmount || 'N/A'} files\n` +
+        `*Type:* ${result.mimetype || 'application/zip'}\n\n` +
+        `*Download:* [Click here](${result.download_url})\n\n` +
+        `✨ _Powered by Cool Shot AI_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ Website converted to ZIP successfully');
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Conversion Failed*\n\nUnable to convert website. Please check the URL and try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Web2Zip error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nAn error occurred. Please try again.'));
+  }
+});
+
+// ========== PDF Creation ==========
+async function createPDF(text) {
+  try {
+    const response = await axios.get('https://apis.davidcyriltech.my.id/pdf/create', {
+      params: { text },
+      timeout: 15000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ PDF creation error:', error.message);
+    return null;
+  }
+}
+
+bot.command('pdf', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('pdf', ctx.from.id);
+  
+  const text = ctx.message.text.replace('/pdf ', '');
+  if (!text || text === '/pdf') {
+    return ctx.reply('Usage: /pdf <text>\nExample: /pdf Hello World! This is my PDF document.');
+  }
+  
+  const processingMsg = await ctx.reply('⏳ Creating PDF...');
+  
+  try {
+    const result = await createPDF(text);
+    
+    if (result && result.url) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const message = `📄 *PDF Created Successfully!*\n\n` +
+                     `🔗 *Download Link:*\n${result.url}\n\n` +
+                     `✨ _Powered by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('PDF creation failed');
+    }
+  } catch (error) {
+    await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+    console.error('❌ PDF error:', error.message);
+    ctx.reply('❌ Failed to create PDF. Please try again later.');
+  }
+});
+
+// ========== ChatGradient AI ==========
+async function chatGradient(text) {
+  try {
+    const response = await axios.get('https://apis.davidcyriltech.my.id/ai/chatgradient', {
+      params: { text },
+      timeout: 15000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ ChatGradient error:', error.message);
+    return null;
+  }
+}
+
+bot.command('chatgradient', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('chatgradient', ctx.from.id);
+  
+  const text = ctx.message.text.replace('/chatgradient ', '');
+  if (!text || text === '/chatgradient') {
+    return ctx.reply('Usage: /chatgradient <your message>\nExample: /chatgradient What is AI?');
+  }
+  
+  const processingMsg = await ctx.reply('🤔 Thinking...');
+  
+  try {
+    const result = await chatGradient(text);
+    
+    if (result && result.result) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const time = new Date().toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      
+      const message = `🤖 *ChatGradient AI*\n` +
+                     `⏰ ${time}\n\n` +
+                     `${result.result}\n\n` +
+                     `✨ _Alternative AI Model_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('ChatGradient failed');
+    }
+  } catch (error) {
+    await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+    console.error('❌ ChatGradient error:', error.message);
+    ctx.reply('❌ Failed to get response. Please try again later.');
+  }
+});
+
+// ========== YouTube MP3 Downloader ==========
+async function downloadYouTubeMP3(url) {
+  try {
+    const response = await axios.get('https://apis.davidcyriltech.my.id/download/ytmp3', {
+      params: { url },
+      timeout: 60000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ YouTube MP3 download error:', error.message);
+    return null;
+  }
+}
+
+bot.command('ytmp3', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('ytmp3', ctx.from.id);
+  
+  const url = ctx.message.text.replace('/ytmp3 ', '');
+  if (!url || url === '/ytmp3') {
+    return ctx.reply('Usage: /ytmp3 <youtube_url>\nExample: /ytmp3 https://www.youtube.com/watch?v=...');
+  }
+  
+  const processingMsg = await ctx.reply('⏳ Converting YouTube to MP3... This may take up to 60 seconds.');
+  
+  try {
+    const result = await downloadYouTubeMP3(url);
+    
+    if (result && result.download) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const title = result.title || 'Audio';
+      const message = `🎵 *YouTube to MP3*\n\n` +
+                     `📝 *Title:* ${title}\n\n` +
+                     `🔗 *Download Link:*\n${result.download}\n\n` +
+                     `✨ _Powered by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('YouTube MP3 download failed');
+    }
+  } catch (error) {
+    await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+    console.error('❌ YouTube MP3 error:', error.message);
+    ctx.reply('❌ Failed to download MP3. Please check the URL and try again.');
+  }
+});
+
+// ========== Song Search and Download ==========
+async function searchSong(query) {
+  try {
+    const response = await axios.get('https://apis.davidcyriltech.my.id/song', {
+      params: { query },
+      timeout: 15000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Song search error:', error.message);
+    return null;
+  }
+}
+
+bot.command('song', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('song', ctx.from.id);
+  
+  const query = ctx.message.text.replace('/song ', '');
+  if (!query || query === '/song') {
+    return ctx.reply('Usage: /song <song name or artist>\nExample: /song Faded Alan Walker');
+  }
+  
+  const processingMsg = await ctx.reply('🔍 Searching for song...');
+  
+  try {
+    const result = await searchSong(query);
+    
+    if (result && result.download) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const title = result.title || 'Unknown';
+      const artist = result.artist || 'Unknown';
+      const duration = result.duration || 'Unknown';
+      
+      const message = `🎵 *Song Found*\n\n` +
+                     `*Title:* ${title}\n` +
+                     `*Artist:* ${artist}\n` +
+                     `*Duration:* ${duration}\n\n` +
+                     `📥 *Download:* ${result.download}\n\n` +
+                     `✨ _Powered by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+    } else {
+      throw new Error('Song not found');
+    }
+  } catch (error) {
+    await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+    console.error('❌ Song search error:', error.message);
+    ctx.reply('❌ Song not found. Please try a different search query.');
+  }
+});
+
+// File Upload Command
+bot.command('upload', async (ctx) => {
+  await updateUserInfo(ctx);
+  await trackCommand('upload', ctx.from.id);
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(
+    '📤 *File Upload Service*\n\n' +
+    'Upload any file to get a permanent URL!\n\n' +
+    '*How to use:*\n' +
+    '1. Send any file to the bot\n' +
+    '2. Wait for processing\n' +
+    '3. Get your permanent download URL\n\n' +
+    '*Supported:* Documents, images, videos, audio, and more\n\n' +
+    '💡 *Tip:* Just send the file directly - no command needed!'
+  ));
+});
+
+// Handle file uploads (documents, photos, videos, audio)
+bot.on('document', async (ctx) => {
+  await updateUserInfo(ctx);
+  
+  try {
+    const file = ctx.message.document;
+    console.log(`📤 Uploading file: ${file.file_name} (${file.file_size} bytes)`);
+    
+    const processingMsg = await ctx.replyWithMarkdownV2(escapeMarkdownV2(
+      '⏳ *Uploading...*\n\n' +
+      `📄 File: ${file.file_name}\n` +
+      `📦 Size: ${(file.file_size / 1024 / 1024).toFixed(2)} MB\n\n` +
+      'Please wait while we upload your file...'
+    ));
+    
+    // Get file URL from Telegram
+    const fileLink = await ctx.telegram.getFileLink(file.file_id);
+    
+    // Upload to GiftedTech file hosting
+    const uploadedUrl = await uploadFileToHost(fileLink.href, file.file_name);
+    
+    if (uploadedUrl) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      
+      const message = `✅ *File Uploaded Successfully!*\n\n` +
+        `📄 *File:* ${file.file_name}\n` +
+        `📦 *Size:* ${(file.file_size / 1024 / 1024).toFixed(2)} MB\n` +
+        `🔗 *URL:* ${uploadedUrl}\n\n` +
+        `💡 *Share this link* to access your file anytime!\n\n` +
+        `✨ _Powered by Cool Shot Systems_`;
+      
+      ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
+      console.log('✅ File uploaded successfully:', uploadedUrl);
+    } else {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        processingMsg.message_id,
+        null,
+        escapeMarkdownV2('❌ *Upload Failed*\n\nUnable to upload file. Please try again.'),
+        { parse_mode: 'MarkdownV2' }
+      );
+    }
+  } catch (error) {
+    console.error('❌ File upload error:', error.message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2('❌ *Error*\n\nFailed to upload file. Please try again.'));
+  }
 });
 
 // Users List Command (RayBen only)
@@ -971,8 +2518,8 @@ bot.command('analytics', async (ctx) => {
   const topCommands = Object.entries(analytics.commandStats)
     .sort(([,a], [,b]) => b - a)
     .slice(0, 5)
-    .map(([cmd, count], i) => `${i + 1}\\. /${escapeMarkdownV2(cmd)} \\(${count} uses\\)`)
-    .join('\\n');
+    .map(([cmd, count], i) => `${i + 1}. /${cmd} (${count} uses)`)
+    .join('\n');
   
   // Most active users
   const topUsers = Object.entries(analytics.userActivity)
@@ -982,21 +2529,21 @@ bot.command('analytics', async (ctx) => {
       const user = users[userId];
       const name = user ? (user.firstName || 'Unknown') : 'Unknown';
       const total = activity.messages + activity.commands;
-      return `${i + 1}\\. ${escapeMarkdownV2(name)} \\(${total} interactions\\)`;
+      return `${i + 1}. ${name} (${total} interactions)`;
     })
-    .join('\\n');
+    .join('\n');
 
-  ctx.replyWithMarkdownV2(
-    `📊 *Bot Analytics Dashboard*\\n\\n` +
-    `⏰ **Uptime:** ${uptime} days\\n` +
-    `👥 **Total Users:** ${totalUsers}\\n` +
-    `🎯 **Active Today:** ${activeToday}\\n` +
-    `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-    `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-    `🏆 **Top Commands:**\\n${topCommands || 'No data'}\\n\\n` +
-    `👑 **Most Active Users:**\\n${topUsers || 'No data'}\\n\\n` +
-    `✨ _Analytics powered by Cool Shot Systems_`
-  );
+  const message = `📊 *Bot Analytics Dashboard*\n\n` +
+    `⏰ *Uptime:* ${uptime} days\n` +
+    `👥 *Total Users:* ${totalUsers}\n` +
+    `🎯 *Active Today:* ${activeToday}\n` +
+    `💬 *Total Messages:* ${analytics.totalMessages}\n` +
+    `⚡ *Total Commands:* ${analytics.totalCommands}\n\n` +
+    `🏆 *Top Commands:*\n${topCommands || 'No data'}\n\n` +
+    `👑 *Most Active Users:*\n${topUsers || 'No data'}\n\n` +
+    `✨ _Analytics powered by Cool Shot Systems_`;
+
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 // User Activity Command (Admin Only)
@@ -1023,21 +2570,21 @@ bot.command('activity', async (ctx) => {
     const messages = activity ? activity.messages : 0;
     const commands = activity ? activity.commands : 0;
     
-    ctx.replyWithMarkdownV2(
-      `👤 *User Activity Report*\\n\\n` +
-      `📛 **Name:** ${escapeMarkdownV2(user.firstName || 'Unknown')}\\n` +
-      `🆔 **ID:** \`${user.id}\`\\n` +
-      `👤 **Username:** ${user.username ? `@${escapeMarkdownV2(user.username)}` : 'No username'}\\n` +
-      `🛡️ **Admin:** ${user.isAdmin ? '✅ Yes' : '❌ No'}\\n\\n` +
-      `📊 **Activity Stats:**\\n` +
-      `💬 Messages: ${messages}\\n` +
-      `⚡ Commands: ${commands}\\n` +
-      `🎯 Total: ${totalActivity}\\n\\n` +
-      `📅 **Dates:**\\n` +
-      `🆕 First Seen: ${escapeMarkdownV2(new Date(user.firstSeen).toLocaleDateString())}\\n` +
-      `👁️ Last Seen: ${escapeMarkdownV2(new Date(user.lastSeen).toLocaleDateString())}\\n\\n` +
-      `📝 **Notes:** ${escapeMarkdownV2(user.notes || 'No notes')}`
-    );
+    const message = `👤 *User Activity Report*\n\n` +
+      `📛 *Name:* ${user.firstName || 'Unknown'}\n` +
+      `🆔 *ID:* \`${user.id}\`\n` +
+      `👤 *Username:* ${user.username ? `@${user.username}` : 'No username'}\n` +
+      `🛡️ *Admin:* ${user.isAdmin ? '✅ Yes' : '❌ No'}\n\n` +
+      `📊 *Activity Stats:*\n` +
+      `💬 Messages: ${messages}\n` +
+      `⚡ Commands: ${commands}\n` +
+      `🎯 Total: ${totalActivity}\n\n` +
+      `📅 *Dates:*\n` +
+      `🆕 First Seen: ${new Date(user.firstSeen).toLocaleDateString()}\n` +
+      `👁️ Last Seen: ${new Date(user.lastSeen).toLocaleDateString()}\n\n` +
+      `📝 *Notes:* ${user.notes || 'No notes'}`;
+    
+    ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
   } else {
     // Show general activity overview
     const recentUsers = Object.values(users)
@@ -1049,19 +2596,19 @@ bot.command('activity', async (ctx) => {
       .sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen))
       .slice(0, 10);
     
-    let message = `📈 *Recent User Activity*\\n\\n`;
-    message += `🎯 **Active in last 3 days:** ${recentUsers.length}\\n\\n`;
+    let message = `📈 *Recent User Activity*\n\n`;
+    message += `🎯 *Active in last 3 days:* ${recentUsers.length}\n\n`;
     
     recentUsers.forEach((user, i) => {
       const name = user.firstName || 'Unknown';
       const username = user.username ? `@${user.username}` : 'No username';
       const isAdminBadge = user.isAdmin ? ' 🛡️' : '';
-      message += `${i + 1}\\. ${escapeMarkdownV2(name)} \\(${escapeMarkdownV2(username)}\\)${isAdminBadge}\\n`;
+      message += `${i + 1}. ${name} (${username})${isAdminBadge}\n`;
     });
     
-    message += `\\n💡 Use \`/activity <user_id>\` for detailed user stats`;
+    message += `\n💡 Use \`/activity <user_id>\` for detailed user stats`;
     
-    ctx.replyWithMarkdownV2(message);
+    ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
   }
 });
 
@@ -1313,11 +2860,11 @@ bot.command('coin', async (ctx) => {
   const result = Math.random() < 0.5 ? 'Heads' : 'Tails';
   const emoji = result === 'Heads' ? '🙂' : '🔄';
   
-  ctx.replyWithMarkdownV2(
-    `🪙 *Coin Flip*\\n\\n` +
-    `${emoji} **Result:** ${result}\\n\\n` +
-    `🎯 _Fate has decided\\!_`
-  );
+  const message = `🪙 *Coin Flip*\n\n` +
+    `${emoji} *Result:* ${result}\n\n` +
+    `🎯 _Fate has decided!_`;
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 bot.command('number', async (ctx) => {
@@ -1326,12 +2873,12 @@ bot.command('number', async (ctx) => {
   
   const number = Math.floor(Math.random() * 100) + 1;
   
-  ctx.replyWithMarkdownV2(
-    `🔢 *Random Number*\\n\\n` +
-    `🎯 **Your number:** ${number}\\n` +
-    `📊 **Range:** 1 \\- 100\\n\\n` +
-    `✨ _Generated by Cool Shot Systems_`
-  );
+  const message = `🔢 *Random Number*\n\n` +
+    `🎯 *Your number:* ${number}\n` +
+    `📊 *Range:* 1 - 100\n\n` +
+    `✨ _Generated by Cool Shot Systems_`;
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 bot.command('8ball', async (ctx) => {
@@ -1409,11 +2956,11 @@ bot.command('joke', async (ctx) => {
   
   const joke = jokes[Math.floor(Math.random() * jokes.length)];
   
-  ctx.replyWithMarkdownV2(
-    `😂 *Random Joke*\\n\\n` +
-    `🎭 ${escapeMarkdownV2(joke)}\\n\\n` +
-    `😄 _Hope that made you smile\\!_`
-  );
+  const message = `😂 *Random Joke*\n\n` +
+    `🎭 ${joke}\n\n` +
+    `😄 _Hope that made you smile!_`;
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 bot.command('fact', async (ctx) => {
@@ -1435,11 +2982,11 @@ bot.command('fact', async (ctx) => {
   
   const fact = facts[Math.floor(Math.random() * facts.length)];
   
-  ctx.replyWithMarkdownV2(
-    `🧠 *Fun Fact*\\n\\n` +
-    `💡 ${escapeMarkdownV2(fact)}\\n\\n` +
-    `🤓 _Learn something new every day\\!_`
-  );
+  const message = `🧠 *Fun Fact*\n\n` +
+    `💡 ${fact}\n\n` +
+    `🤓 _Learn something new every day!_`;
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 // Bot Stats Command (Enhanced)
@@ -1463,19 +3010,19 @@ bot.command('stats', async (ctx) => {
   const userLang = userLanguages[ctx.from.id] || 'en';
   const langLabel = languages.find(l => l.code === userLang)?.label || '🇬🇧 English';
   
-  ctx.replyWithMarkdownV2(
-    `📊 *Cool Shot AI Statistics*\\n\\n` +
-    `⏰ **Bot Uptime:** ${uptimeDays}d ${uptimeHours}h\\n` +
-    `👥 **Total Users:** ${totalUsers}\\n` +
-    `🛡️ **Administrators:** ${totalAdmins}\\n` +
-    `🎯 **Active Today:** ${activeToday}\\n` +
-    `💬 **Total Messages:** ${analytics.totalMessages}\\n` +
-    `⚡ **Total Commands:** ${analytics.totalCommands}\\n\\n` +
-    `👤 **Your Settings:**\\n` +
-    `🧠 Role: ${escapeMarkdownV2(userRole)}\\n` +
-    `🌐 Language: ${escapeMarkdownV2(langLabel)}\\n\\n` +
-    `✨ _Powered by Cool Shot Systems_`
-  );
+  const message = `📊 *Cool Shot AI Statistics*\n\n` +
+    `⏰ *Bot Uptime:* ${uptimeDays}d ${uptimeHours}h\n` +
+    `👥 *Total Users:* ${totalUsers}\n` +
+    `🛡️ *Administrators:* ${totalAdmins}\n` +
+    `🎯 *Active Today:* ${activeToday}\n` +
+    `💬 *Total Messages:* ${analytics.totalMessages}\n` +
+    `⚡ *Total Commands:* ${analytics.totalCommands}\n\n` +
+    `👤 *Your Settings:*\n` +
+    `🧠 Role: ${userRole}\n` +
+    `🌐 Language: ${langLabel}\n\n` +
+    `✨ _Powered by Cool Shot Systems_`;
+  
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 // Command Usage Statistics (Admin Only)
