@@ -782,10 +782,10 @@ bot.command('apistatus', async (ctx) => {
     return ctx.replyWithMarkdownV2(escapeMarkdownV2('⛔️ *Access Denied*\n\nOnly administrators can check API status.'));
   }
   
-  let message = `🔧 *AI API Status Dashboard*\\n\\n`;
+  let message = `🔧 *AI API Status Dashboard*\n\n`;
   
   // Check primary APIs
-  message += `🎯 **Primary APIs \\(${aiAPIs.length}\\):**\\n`;
+  message += `🎯 *Primary APIs (${aiAPIs.length}):*\n`;
   for (let i = 0; i < aiAPIs.length; i++) {
     const url = aiAPIs[i];
     const apiName = url.includes('gpt4o') ? 'GPT-4o' : 
@@ -793,31 +793,31 @@ bot.command('apistatus', async (ctx) => {
                    url.includes('meta-llama') ? 'Meta Llama' :
                    url.includes('copilot') ? 'Copilot' :
                    `API ${i + 1}`;
-    message += `${i + 1}\\. ${escapeMarkdownV2(apiName)} \\- GiftedTech\\n`;
+    message += `${i + 1}. ${apiName} - GiftedTech\n`;
   }
   
   // Check Google Gemini status
-  message += `\\n🤖 **Fallback API:**\\n`;
+  message += `\n🤖 *Fallback API:*\n`;
   if (geminiAI) {
-    message += `✅ Google Gemini \\- *Configured & Ready*\\n`;
+    message += `✅ Google Gemini - *Configured & Ready*\n`;
   } else {
-    message += `⚠️ Google Gemini \\- *Not Configured*\\n`;
-    message += `💡 Set GOOGLE\\_API\\_KEY environment variable to enable\\n`;
+    message += `⚠️ Google Gemini - *Not Configured*\n`;
+    message += `💡 Set GOOGLE_API_KEY environment variable to enable\n`;
   }
   
-  message += `\\n📊 **API Flow:**\\n`;
-  message += `1\\. Try all ${aiAPIs.length} primary APIs sequentially\\n`;
-  message += `2\\. If all fail, use Google Gemini fallback\\n`;
-  message += `3\\. If still no response, show enhanced error message\\n\\n`;
+  message += `\n📊 *API Flow:*\n`;
+  message += `1. Try all ${aiAPIs.length} primary APIs sequentially\n`;
+  message += `2. If all fail, use Google Gemini fallback\n`;
+  message += `3. If still no response, show enhanced error message\n\n`;
   
-  message += `🛡️ **Brand Protection:**\\n`;
-  message += `• All responses maintain Cool Shot AI identity\\n`;
-  message += `• Comprehensive text replacement ensures consistency\\n`;
-  message += `• No external provider names leak through\\n\\n`;
+  message += `🛡️ *Brand Protection:*\n`;
+  message += `• All responses maintain Cool Shot AI identity\n`;
+  message += `• Comprehensive text replacement ensures consistency\n`;
+  message += `• No external provider names leak through\n\n`;
   
   message += `✨ _Cool Shot Systems API Management_`;
   
-  ctx.replyWithMarkdownV2(message);
+  ctx.replyWithMarkdownV2(escapeMarkdownV2(message));
 });
 
 // Users List Command (RayBen only)
