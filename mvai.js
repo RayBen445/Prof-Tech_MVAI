@@ -898,47 +898,192 @@ bot.command('about', async (ctx) => {
   );
 });
 
-// Help Command
+// Help Command - Main Menu
 bot.command('help', async (ctx) => {
   await updateUserInfo(ctx);
   await trackCommand('help', ctx.from.id);
   ctx.replyWithMarkdownV2(
     escapeMarkdownV2(
-      "🆘 *Cool Shot AI Help*\n\n" +
-      "🤖 *AI Features:*\n" +
+      "🆘 *Cool Shot AI Help Menu*\n\n" +
+      "Select a category to view available commands:"
+    ),
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🤖 AI Features", callback_data: "help_ai" }],
+          [{ text: "📥 Social Media Downloads", callback_data: "help_social" }],
+          [{ text: "🎬 Media Tools", callback_data: "help_media" }],
+          [{ text: "🎨 Image Tools", callback_data: "help_image" }],
+          [{ text: "📧 Temporary Email", callback_data: "help_tempmail" }],
+          [{ text: "🎮 Entertainment", callback_data: "help_entertainment" }],
+          [{ text: "📊 Info & Support", callback_data: "help_info" }]
+        ]
+      }
+    }
+  );
+});
+
+// Help Menu Callback Handlers
+bot.action('help_ai', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "🤖 *AI Features*\n\n" +
       "• /start - Welcome message\n" +
       "• /role - Pick your expert mode\n" +
       "• /lang - Choose language\n" +
       "• /search <query> - Web search\n" +
       "• /describe - AI image description\n" +
       "• /imagine <prompt> - Generate images\n" +
-      "• /chatgradient <text> - Alternative AI\n\n" +
-      "📥 *Social Media Downloads:*\n" +
+      "• /chatgradient <text> - Alternative AI"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_social', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "📥 *Social Media Downloads*\n\n" +
       "• /facebook <url> - Facebook videos\n" +
       "• /instagram <url> - Instagram posts/reels\n" +
       "• /twitter <url> - Twitter/X videos\n" +
-      "• /tiktok <url> - TikTok videos\n\n" +
-      "🎬 *Media Tools:*\n" +
+      "• /tiktok <url> - TikTok videos\n" +
+      "• /xvideos <url> - XVideos downloader\n" +
+      "• /xnxx <url> - XNXX downloader\n" +
+      "• /adult - Adult content instructions"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_media', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "🎬 *Media Tools*\n\n" +
       "• /ytmp3 <url> - YouTube to MP3\n" +
       "• /song <query> - Search and download songs\n" +
-      "• /pdf <text> - Create PDF document\n\n" +
-      "🎨 *Image Tools:*\n" +
+      "• /pdf <text> - Create PDF document"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_image', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "🎨 *Image Tools*\n\n" +
       "• /removebg - Remove background\n" +
       "• /web2zip <url> - Convert website to ZIP\n" +
-      "• /upload - Upload file for permanent URL\n\n" +
-      "📧 *Temporary Email:*\n" +
+      "• /upload - Upload file for permanent URL"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_tempmail', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "📧 *Temporary Email*\n\n" +
       "• /tempmail - TempMail instructions\n" +
       "• /tempmail_generate - Create temp email\n" +
-      "• /tempmail_inbox <email> - Check inbox\n\n" +
-      "🎮 *Entertainment:*\n" +
+      "• /tempmail_inbox <email> - Check inbox\n" +
+      "• /tempmail_read <email> <id> - Read message"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_entertainment', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "🎮 *Entertainment*\n\n" +
       "• /games - Fun activities\n" +
-      "• /tools - Text utilities\n\n" +
-      "📊 *Info & Support:*\n" +
+      "• /tools - Text utilities\n" +
+      "• /joke - Random jokes\n" +
+      "• /fact - Fun facts\n" +
+      "• /coin - Flip a coin\n" +
+      "• /number - Random number"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_info', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "📊 *Info & Support*\n\n" +
       "• /stats - Bot statistics\n" +
       "• /about - About the bot\n" +
       "• /support <msg> - Get help\n" +
       "• /ping - Check status"
-    )
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[{ text: "« Back to Menu", callback_data: "help_main" }]]
+      }
+    }
+  );
+});
+
+bot.action('help_main', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText(
+    escapeMarkdownV2(
+      "🆘 *Cool Shot AI Help Menu*\n\n" +
+      "Select a category to view available commands:"
+    ),
+    {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🤖 AI Features", callback_data: "help_ai" }],
+          [{ text: "📥 Social Media Downloads", callback_data: "help_social" }],
+          [{ text: "🎬 Media Tools", callback_data: "help_media" }],
+          [{ text: "🎨 Image Tools", callback_data: "help_image" }],
+          [{ text: "📧 Temporary Email", callback_data: "help_tempmail" }],
+          [{ text: "🎮 Entertainment", callback_data: "help_entertainment" }],
+          [{ text: "📊 Info & Support", callback_data: "help_info" }]
+        ]
+      }
+    }
   );
 });
 
